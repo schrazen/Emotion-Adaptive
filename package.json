@@ -1,0 +1,28 @@
+{
+  "devDependencies": {
+    "electron": "^41.1.1"
+  },
+  "dependencies": {
+    "sqlite3": "^6.0.1"
+  },
+  "name": "emotion-adaptive",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "electron ."
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/schrazen/Emotion-Adaptive.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/schrazen/Emotion-Adaptive/issues"
+  },
+  "homepage": "https://github.com/schrazen/Emotion-Adaptive#readme"
+}
