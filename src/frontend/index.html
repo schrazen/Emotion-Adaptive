@@ -2,22 +2,168 @@
 <html lang="en">
 
 <head>
-    <title>EAUIS</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EAUIS Widget</title>
+    <style>
+        :root {
+            --bg: rgba(28, 33, 44, 0.92);
+            --text: #f3f5ff;
+            --subtle: #9fa9c6;
+            --accent: #7ed3ff;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: transparent;
+            height: 100vh;
+            display: grid;
+            place-items: center;
+            -webkit-app-region: drag;
+        }
+
+        .widget {
+            width: 220px;
+            border-radius: 16px;
+            padding: 14px;
+            background: var(--bg);
+            color: var(--text);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+            backdrop-filter: blur(6px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .title {
+            font-size: 11px;
+            color: var(--subtle);
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .mood {
+            font-size: 28px;
+            font-weight: 700;
+            line-height: 1;
+            margin-bottom: 10px;
+            color: var(--accent);
+            transition: color 160ms ease;
+        }
+
+        .row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: var(--subtle);
+        }
+
+        .value {
+            color: var(--text);
+            font-weight: 600;
+        }
+
+        .angry {
+            --accent: #ff7a7a;
+        }
+
+        .neutral {
+            --accent: #7ed3ff;
+        }
+
+        .happy {
+            --accent: #89f5ac;
+        }
+    </style>
 </head>
 
 <body>
-    <div id="app">hello world</div>
-    <div class="testmood">i am the mood...</div>
+    <main id="widget" class="widget neutral">
+        <p class="title">Emotion Widget</p>
+        <p id="moodWord" class="mood">Neutral</p>
+        <div class="row">
+            <span>APM</span>
+            <span id="apmValue" class="value">0</span>
+        </div>
+    </main>
 
+    <script>
+        const keyTimestamps = [];
+        const moodWord = document.getElementById('moodWord');
+        const apmValue = document.getElementById('apmValue');
+        const widget = document.getElementById('widget');
 
+        function computeAPM() {
+            const now = Date.now();
+            const windowStart = now - 60000;
 
+            while (keyTimestamps.length > 0 && keyTimestamps[0] < windowStart) {
+                keyTimestamps.shift();
+            }
+
+            return keyTimestamps.length;
+        }
+
+        function moodFromAPM(apm) {
+            if (apm >= 120) return 'Angry';
+            if (apm >= 55) return 'Happy';
+            return 'Neutral';
+        }
+
+        function applyMoodUI(mood, apm) {
+            moodWord.textContent = mood;
+            apmValue.textContent = String(apm);
+            widget.classList.remove('angry', 'neutral', 'happy');
+            widget.classList.add(mood.toLowerCase());
+        }
+
+        async function saveSnapshot(mood, apm) {
+            if (!window.eauisAPI || !window.eauisAPI.saveMoodSnapshot) return;
+            try {
+                await window.eauisAPI.saveMoodSnapshot({
+                    apm,
+                    computedMood: mood,
+                    source: 'widget-keydown'
+                });
+            } catch (_error) {
+                // Keep widget responsive even if backend save fails.
+            }
+        }
+
+        document.addEventListener('keydown', () => {
+            keyTimestamps.push(Date.now());
+        });
+
+        setInterval(() => {
+            const apm = computeAPM();
+            const mood = moodFromAPM(apm);
+            applyMoodUI(mood, apm);
+        }, 500);
+
+        setInterval(() => {
+            const apm = computeAPM();
+            const mood = moodFromAPM(apm);
+            saveSnapshot(mood, apm);
+        }, 5000);
+
+        (async () => {
+            try {
+                if (window.eauisAPI && window.eauisAPI.getMood) {
+                    const latest = await window.eauisAPI.getMood();
+                    if (latest && typeof latest.apm === 'number' && latest.computed_mood) {
+                        applyMoodUI(latest.computed_mood, latest.apm);
+                    }
+                }
+            } catch (_error) {
+                // Ignore bootstrap errors and keep defaults.
+            }
+        })();
+    </script>
 </body>
-
-<script>
-
-
-
-
-</script>
 
 </html>

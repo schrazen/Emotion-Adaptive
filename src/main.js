@@ -4,8 +4,13 @@ const { initializeIPC } = require('./backend/router');
 
 function createWindow(){
     const win = new BrowserWindow ({
-        width: 800,
-        height: 600,
+        width: 240,
+        height: 140,
+        frame: false,
+        alwaysOnTop: true,
+        resizable: false,
+        transparent: true,
+        skipTaskbar: false,
         webPreferences: {
             preload: path.join(__dirname, 'preload/contextBridge.js'),
             nodeIntegration: false,

@@ -7,7 +7,7 @@ class MoodController {
                 return { success: false, message: 'Invalid APM value.' };
             }
 
-            const validMoods = ['Happy', 'Neutral', 'Stressed'];
+            const validMoods = ['Happy', 'Neutral', 'Angry'];
             if (!validMoods.includes(moodData.computedMood)) {
                 return { success: false, message: 'Invalid mood state.' };
             }
