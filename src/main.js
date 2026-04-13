@@ -1,9 +1,12 @@
-const {app, BrowserWindow} = require('electron');
+const { app, BrowserWindow } = require('electron');
 const path = require('path');
 const { initializeIPC } = require('./backend/router');
+const { uIOhook } = require('uiohook-napi');
 
-function createWindow(){
-    const win = new BrowserWindow ({
+let mainWindow = null;
+
+function createWindow() {
+    mainWindow = new BrowserWindow({
         width: 240,
         height: 140,
         frame: false,
@@ -16,13 +19,38 @@ function createWindow(){
             nodeIntegration: false,
             contextIsolation: true,
         }
-    })
-    win.loadFile(path.join(__dirname, 'frontend/index.html'));
+    });
+
+    mainWindow.loadFile(path.join(__dirname, 'frontend/index.html'));
+    mainWindow.on('closed', () => {
+        mainWindow = null;
+    });
+}
+
+function startGlobalKeyboardTracking() {
+    uIOhook.on('keydown', (event) => {
+        if (!mainWindow || mainWindow.isDestroyed()) {
+            return;
+        }
+
+        mainWindow.webContents.send('global-key-activity', {
+            keycode: event.keycode,
+            shiftKey: event.shiftKey,
+            ctrlKey: event.ctrlKey,
+            altKey: event.altKey,
+            metaKey: event.metaKey,
+            when: Date.now(),
+        });
+    });
+
+    uIOhook.start();
 }
 
 app.whenReady().then(() => {
     initializeIPC();
     createWindow();
+    startGlobalKeyboardTracking();
+
     app.on('activate', () => {
         if (BrowserWindow.getAllWindows().length === 0) createWindow();
     });
@@ -30,5 +58,13 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') app.quit();
+});
+
+app.on('will-quit', () => {
+    try {
+        uIOhook.stop();
+    } catch (_error) {
+        // Ignore cleanup errors during app shutdown.
+    }
 });
 

@@ -94,24 +94,72 @@
 
     <script>
         const keyTimestamps = [];
+        const joyTimestamps = [];
         const moodWord = document.getElementById('moodWord');
         const apmValue = document.getElementById('apmValue');
         const widget = document.getElementById('widget');
 
-        function computeAPM() {
-            const now = Date.now();
-            const windowStart = now - 60000;
+        const JOY_PATTERNS = [
+            /(^|\W)lol(\W|$)/i,
+            /(^|\W)lmao(\W|$)/i,
+            /(^|\W)rofl(\W|$)/i,
+            /h[ae]{1,}h[ae]{1,}/i,
+            /(^|\W)hehe+/i,
+            /(^|\W)yay+(\W|$)/i,
+            /😂|🤣|😆|😄|😀/
+        ];
 
-            while (keyTimestamps.length > 0 && keyTimestamps[0] < windowStart) {
-                keyTimestamps.shift();
+        const NON_ACTIVITY_KEYS = new Set([
+            'Shift', 'Control', 'Alt', 'Meta', 'CapsLock', 'Tab', 'Escape',
+            'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home', 'End',
+            'PageUp', 'PageDown', 'Insert', 'Delete', 'NumLock', 'ScrollLock'
+        ]);
+
+        let recentText = '';
+        let smoothedApm = 0;
+        let lastTrackedAt = 0;
+        let globalInputHooked = false;
+
+        function trimWindow(queue, msWindow) {
+            const cutoff = Date.now() - msWindow;
+            while (queue.length > 0 && queue[0] < cutoff) {
+                queue.shift();
             }
-
-            return keyTimestamps.length;
         }
 
-        function moodFromAPM(apm) {
-            if (apm >= 120) return 'Angry';
-            if (apm >= 55) return 'Happy';
+        function computeAPM() {
+            trimWindow(keyTimestamps, 60000);
+            const rawApm = keyTimestamps.length;
+            smoothedApm = smoothedApm === 0
+                ? rawApm
+                : (smoothedApm * 0.72) + (rawApm * 0.28);
+            return Math.round(smoothedApm);
+        }
+
+        function hasRecentJoySignal() {
+            trimWindow(joyTimestamps, 20000);
+            return joyTimestamps.length > 0;
+        }
+
+        function detectJoyFromBuffer() {
+            return JOY_PATTERNS.some((pattern) => pattern.test(recentText));
+        }
+
+        function trackActivity(eventTime = Date.now()) {
+            if ((eventTime - lastTrackedAt) <= 35) {
+                return;
+            }
+
+            keyTimestamps.push(eventTime);
+            lastTrackedAt = eventTime;
+        }
+
+        function moodFromSignals(apm) {
+            const joyActive = hasRecentJoySignal();
+
+            if (apm >= 140) return 'Angry';
+            if (joyActive) return 'Happy';
+            if (apm >= 85) return 'Happy';
             return 'Neutral';
         }
 
@@ -135,19 +183,48 @@
             }
         }
 
-        document.addEventListener('keydown', () => {
-            keyTimestamps.push(Date.now());
+        document.addEventListener('keydown', (event) => {
+            const now = Date.now();
+
+            // Fallback activity tracking when global hook is unavailable.
+            if (!globalInputHooked && !NON_ACTIVITY_KEYS.has(event.key)) {
+                trackActivity(now);
+            }
+
+            if (event.key === 'Backspace') {
+                recentText = recentText.slice(0, -1);
+            } else if (event.key === 'Enter' || event.key === ' ') {
+                recentText += ' ';
+            } else if (event.key.length === 1) {
+                recentText += event.key.toLowerCase();
+            }
+
+            if (recentText.length > 200) {
+                recentText = recentText.slice(-200);
+            }
+
+            if (detectJoyFromBuffer()) {
+                joyTimestamps.push(now);
+            }
         });
+
+        if (window.eauisAPI && typeof window.eauisAPI.onGlobalKeyActivity === 'function') {
+            window.eauisAPI.onGlobalKeyActivity((data) => {
+                globalInputHooked = true;
+                const when = data && typeof data.when === 'number' ? data.when : Date.now();
+                trackActivity(when);
+            });
+        }
 
         setInterval(() => {
             const apm = computeAPM();
-            const mood = moodFromAPM(apm);
+            const mood = moodFromSignals(apm);
             applyMoodUI(mood, apm);
         }, 500);
 
         setInterval(() => {
             const apm = computeAPM();
-            const mood = moodFromAPM(apm);
+            const mood = moodFromSignals(apm);
             saveSnapshot(mood, apm);
         }, 5000);
 
@@ -156,6 +233,7 @@
                 if (window.eauisAPI && window.eauisAPI.getMood) {
                     const latest = await window.eauisAPI.getMood();
                     if (latest && typeof latest.apm === 'number' && latest.computed_mood) {
+                        smoothedApm = latest.apm;
                         applyMoodUI(latest.computed_mood, latest.apm);
                     }
                 }
