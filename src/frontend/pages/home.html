@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../styles/main.css">
+    <link rel="stylesheet" href="../styles/home.css">
+    <link rel="stylesheet" href="../assets/boxicons-2.1.4/css/boxicons.min.css">
+</head>
+
+<body>
+    <div class="home-wrapper">
+        <section class="greeting-area">
+            <h1 class="user-greeting">Hello, User!</h1>
+            <p class="user-subtext">How are we feeling today?</p>
+        </section>
+
+        <div class="status-card">
+            <div class="card-header">
+                <span class="state-label">User State: <span class="current-mood">Neutral</span></span>
+                <button class="edit-btn"><i class='bx bx-pencil'></i></button>
+            </div>
+
+            <div class="sprite-display">
+                <img src="../assets/sprites/pikachu/pikachu_idle.png" id="mood-sprite" alt="Pikachu">
+            </div>
+
+            <div class="mood-selectors">
+                <div class="mood-option" onclick="updateMood('happy')">
+                    <span class="dot yellow"></span>
+                    <span>Happy</span>
+                </div>
+                <div class="mood-option active" onclick="updateMood('neutral')">
+                    <span class="dot gray"></span>
+                    <span>Neutral</span>
+                </div>
+                <div class="mood-option" onclick="updateMood('stressed')">
+                    <span class="dot red"></span>
+                    <span>Stressed</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/router.js"></script>
+</body>
+
+</html>

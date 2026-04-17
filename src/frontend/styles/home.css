@@ -1,0 +1,114 @@
+.home-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 13px;
+    animation: fadeIn 0.3s ease-in-out;
+    margin: 0;
+    padding: 0;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.user-greeting {
+    margin: 0;
+    font-weight: var(--fw-bold);
+    font-size: 29px;
+    letter-spacing: -0.04em;
+    line-height: 1.1;
+    -webkit-font-smoothing: antialiased;
+    font-feature-settings: "cv05", "ss01";
+    color: var(--text-primary);
+}
+
+.user-subtext {
+    font-size: 14px;
+    font-weight: var(--fw-medium);
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+/* Status Card */
+.status-card {
+    height: 260px;
+    background: var(--card-bg);
+    border: 1.5px solid var(--card-border);
+    border-radius: 35px;
+    padding: 14px 25px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+}
+
+.card-header {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 14px;
+    color: var(--text-primary);
+    margin-bottom: 10px;
+}
+
+.current-mood {
+    font-weight: 700;
+    color: var(--text-secondary);
+}
+
+.edit-btn {
+    background: transparent;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    color: var(--text-primary);
+}
+
+/* Sprite Section */
+.sprite-display {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.sprite-display img {
+    height: 140px;
+    image-rendering: pixelated;
+}
+
+/* Mood Indicators */
+.mood-selectors {
+    display: flex;
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.mood-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 5px 10px;
+    border-radius: 20px;
+    transition: background 0.2s;
+}
+
+.mood-option.active {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+}
+
+.yellow { background: #FFD966; }
+.gray { background: #919191; }
+.red { background: #FF6B6B; }

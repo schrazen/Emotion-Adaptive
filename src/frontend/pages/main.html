@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../styles/main.css">
+    <link rel="stylesheet" href="../assets/boxicons-2.1.4/css/boxicons.min.css">
+</head>
+
+<body>
+    <header class="title-bar">
+        <div class="window-controls">
+            <button class="control-btn min-btn" onclick="window.api.minimizeWindow()">&minus;</button>
+            <button class="control-btn close-btn" onclick="window.api.closeWindow()">&times;</button>
+        </div>
+    </header>
+
+    <div class="main-wrapper">
+        <div class="app-container">
+            <main id="main-content"></main>
+        </div>
+
+        <nav class="bottom-nav">
+            <div class="nav-toggle">
+                <button class="nav-item active" onclick="loadPage('home')">
+                    <i class='bx bxs-layer'></i>
+                </button>
+                <button class="nav-item" onclick="loadPage('history')">
+                    <i class='bx bx-time-five'></i>
+                </button>
+            </div>
+            <button class="settings-fab" onclick="loadPage('settings')">
+                <i class='bx bx-slider-alt'></i>
+            </button>
+        </nav>
+    </div>
+
+    <script src="../js/router.js"></script>
+</body>
+
+</html>
