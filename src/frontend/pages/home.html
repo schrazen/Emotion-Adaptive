@@ -38,64 +38,69 @@
                     <span class="dot gray"></span>
                     <span>Neutral</span>
                 </div>
-                <div class="mood-option mood-stressed">
+                <div class="mood-option mood-angry">
                     <span class="dot red"></span>
-                    <span>Stressed</span>
+                    <span>Angry</span>
                 </div>
             </div>
         </div>
     </div>
 
+    <script src="../js/moodTracker.js"></script>
     <script>
         (function () {
-            // 1. Configuration
-            const CURRENT_USER_MOOD = 'neutral';
+            const stateText = document.querySelector('.current-mood');
+            const spriteImg = document.getElementById('mood-sprite');
+            const moodOptions = document.querySelectorAll('.mood-option');
 
-            const syncUI = () => {
-                const stateText = document.querySelector('.current-mood');
-                const spriteImg = document.getElementById('mood-sprite');
-                const moodOptions = document.querySelectorAll('.mood-option');
+            if (!stateText || !spriteImg) {
+                return;
+            }
 
-                // Check if elements exist (Crucial for routers)
-                if (!stateText || !spriteImg || !document.querySelector(`.mood-${CURRENT_USER_MOOD}`)) {
-                    return false;
+            function normalizeMood(mood) {
+                const value = String(mood || 'Neutral').toLowerCase();
+                if (value === 'angry') return 'angry';
+                if (value === 'happy') return 'happy';
+                if (value === 'neutral') return 'neutral';
+                return 'neutral';
+            }
+
+            function applyHomeState(state) {
+                const moodKey = normalizeMood(state.mood);
+                const moodText = moodKey.charAt(0).toUpperCase() + moodKey.slice(1);
+
+                stateText.textContent = moodText;
+                moodOptions.forEach((option) => option.classList.remove('active'));
+
+                const activeOption = document.querySelector(`.mood-${moodKey}`);
+                if (activeOption) {
+                    activeOption.classList.add('active');
                 }
 
-                function updateUI(mood) {
-                    const targetOption = document.querySelector(`.mood-${mood}`);
-                    if (!targetOption) return;
-
-                    // Update Label
-                    stateText.textContent = mood.charAt(0).toUpperCase() + mood.slice(1);
-
-                    // Update Animation via SpriteEngine
+                const applyCharacter = (character) => {
+                    const selectedWidget = character || 'pikachu';
                     if (window.SpriteEngine) {
-                        window.SpriteEngine.play(spriteImg, 'pikachu', mood, 400);
+                        window.SpriteEngine.play(spriteImg, selectedWidget, moodKey, 400);
                     }
+                };
 
-                    // Update Dots
-                    moodOptions.forEach(opt => opt.classList.remove('active'));
-                    targetOption.classList.add('active');
+                if (window.getSelectedCharacter) {
+                    window.getSelectedCharacter().then(applyCharacter).catch(() => applyCharacter('pikachu'));
+                } else {
+                    applyCharacter('pikachu');
                 }
+            }
 
-                // Attach Click Listeners for testing
-                moodOptions.forEach(option => {
-                    option.onclick = () => {
-                        if (option.classList.contains('mood-happy')) updateUI('happy');
-                        if (option.classList.contains('mood-neutral')) updateUI('neutral');
-                        if (option.classList.contains('mood-stressed')) updateUI('stressed');
-                    };
-                });
+            if (window.MoodTracker) {
+                window.MoodTracker.start();
+                window.MoodTracker.subscribe(applyHomeState);
+            }
 
-                // Initial Run
-                updateUI(CURRENT_USER_MOOD);
-                return true;
-            };
-
-            // Retry loop to ensure elements are found after router injection
-            const checkExist = setInterval(() => {
-                if (syncUI()) clearInterval(checkExist);
-            }, 20);
+            window.addEventListener('character-changed', () => {
+                if (window.MoodTracker && typeof window.MoodTracker.getState === 'function') {
+                    applyHomeState(window.MoodTracker.getState());
+                }
+            });
         })();
     </script>
 </body>

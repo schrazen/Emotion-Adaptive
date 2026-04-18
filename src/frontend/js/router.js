@@ -29,29 +29,29 @@ async function loadPage(page) {
         }
 
         // 3. Script Execution Logic
-        // This finds any <script> tags inside your injected HTML and re-runs them
-        const scripts = container.querySelectorAll("script");
-        scripts.forEach(oldScript => {
-            const newScript = document.createElement("script");
-            
-            // Copy attributes (src, type, etc.)
-            Array.from(oldScript.attributes).forEach(attr => {
+        // Run scripts in order and wait for external scripts to finish loading before inline scripts execute.
+        const scripts = Array.from(container.querySelectorAll('script'));
+        for (const oldScript of scripts) {
+            const newScript = document.createElement('script');
+
+            Array.from(oldScript.attributes).forEach((attr) => {
                 newScript.setAttribute(attr.name, attr.value);
             });
 
             if (oldScript.src) {
-                newScript.src = oldScript.src;
+                await new Promise((resolve, reject) => {
+                    newScript.onload = resolve;
+                    newScript.onerror = reject;
+                    newScript.src = oldScript.src;
+                    document.body.appendChild(newScript);
+                });
             } else {
                 newScript.textContent = oldScript.textContent;
+                document.body.appendChild(newScript);
             }
 
-            // Append to body to trigger execution, then clean up the old one
-            document.body.appendChild(newScript);
             oldScript.remove();
-            
-            // Optional: Remove the injected script after execution to keep DOM clean
-            setTimeout(() => newScript.remove(), 100);
-        });
+        }
 
     } catch (error) {
         console.error("Navigation error:", error);

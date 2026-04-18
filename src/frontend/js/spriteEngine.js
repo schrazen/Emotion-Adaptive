@@ -9,9 +9,9 @@ window.SpriteEngine = (function () {
                 "../assets/sprites/pikachu/pikachu_neutral1.png",
                 "../assets/sprites/pikachu/pikachu_neutral2.png"
             ],
-            stressed: [
-                "../assets/sprites/pikachu/pikachu_stressed1.png",
-                "../assets/sprites/pikachu/pikachu_stressed2.png"
+            angry: [
+                "../assets/sprites/pikachu/pikachu_angry1.png",
+                "../assets/sprites/pikachu/pikachu_angry2.png"
             ]
         },
         kirby: {
@@ -23,9 +23,9 @@ window.SpriteEngine = (function () {
                 "../assets/sprites/kirby/kirby_neutral1.png",
                 "../assets/sprites/kirby/kirby_neutral2.png"
             ],
-            stressed: [
-                "../assets/sprites/kirby/kirby_stressed1.png",
-                "../assets/sprites/kirby/kirby_stressed2.png"
+            angry: [
+                "../assets/sprites/kirby/kirby_angry1.png",
+                "../assets/sprites/kirby/kirby_angry2.png"
             ]
         }
 
