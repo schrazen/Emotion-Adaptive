@@ -1,0 +1,116 @@
+.search-container {
+    margin-top: 12px;
+    position: relative;
+    width: 100%;
+}
+
+.search-icon {
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-secondary);
+    font-size: 20px;
+}
+
+#history-search {
+    width: 100%;
+    padding: 10px 12px 10px 45px;
+    border-radius: 25px;
+    border: 1.5px solid var(--card-border);
+    background: var(--card-bg);
+    color: var(--text-primary);
+    font-size: 16px;
+    outline: none;
+}
+
+/* History List Scroll Area */
+.history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow-y: auto;
+    padding-right: 5px;
+    flex-grow: 1;
+}
+
+/* Custom Scrollbar */
+.history-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.history-list::-webkit-scrollbar-track {
+    background: transparent;
+    border: 1px solid var(--card-border); /* The thin gray outline */
+    border-radius: 20px;
+    margin-block: 1px;
+}
+
+.history-list::-webkit-scrollbar-thumb {
+    background-color: var(--card-border);
+    border-radius: 20px;
+    border: 2px solid transparent; 
+    background-clip: content-box;
+}
+
+.history-list::-webkit-scrollbar-thumb:hover {
+    background-color: var(--secondary-hover);
+}
+
+/* The Card Layout */
+.history-card {
+    background: var(--card-bg);
+    border: 1.5px solid var(--card-border);
+    border-radius: 16px;
+    padding: 13px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: transform 0.2s;
+}
+
+.history-date {
+    font-size: 14px;
+    font-weight: 700;
+    margin: 0;
+    color: var(--text-primary);
+}
+
+.history-state {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin: 1px 0 0 0;
+}
+
+/* Data Right Side */
+.card-right {
+    text-align: right;
+}
+
+.trend-label {
+    font-size: 9px;
+    font-weight: var(--fw-semibold);
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 2px;
+}
+
+.trend-label.positive { color: #098600; }
+.trend-label.negative { color: #EE0000; }
+
+.apm-value {
+    font-size: 21px;
+    font-weight: var(--fw-semibold);
+    line-height: 1;
+    color: var(--text-primary);
+    margin-top: 1px;
+}
+
+.apm-label {
+    font-size: 8px;
+    font-weight: var(--fw-medium);
+    color: var(--text-primary);
+    letter-spacing: 0.1px;
+    line-height: 0.6;
+}

@@ -7,35 +7,38 @@
     <link rel="stylesheet" href="../styles/main.css">
     <link rel="stylesheet" href="../styles/home.css">
     <link rel="stylesheet" href="../assets/boxicons-2.1.4/css/boxicons.min.css">
+
 </head>
 
 <body>
-    <div class="home-wrapper">
-        <section class="greeting-area">
-            <h1 class="user-greeting">Hello, User!</h1>
-            <p class="user-subtext">How are we feeling today?</p>
+    <div class="page-wrapper">
+        <section class="header-area">
+            <h1 class="main-text">Hello, User!</h1>
+            <p class="sub-text">How are we feeling today?</p>
         </section>
 
         <div class="status-card">
             <div class="card-header">
-                <span class="state-label">User State: <span class="current-mood">Neutral</span></span>
-                <button class="edit-btn"><i class='bx bx-pencil'></i></button>
+                <span class="state-label">User State: <span class="current-mood"></span></span>
+                <button class="edit-btn" onclick="openModal('widget-modal')">
+                    <i class='bx bxs-edit-alt'></i>
+                </button>
             </div>
 
             <div class="sprite-display">
-                <img src="../assets/sprites/pikachu/pikachu_idle.png" id="mood-sprite" alt="Pikachu">
+                <img id="mood-sprite" alt="Character">
             </div>
 
             <div class="mood-selectors">
-                <div class="mood-option" onclick="updateMood('happy')">
+                <div class="mood-option mood-happy">
                     <span class="dot yellow"></span>
                     <span>Happy</span>
                 </div>
-                <div class="mood-option active" onclick="updateMood('neutral')">
+                <div class="mood-option mood-neutral">
                     <span class="dot gray"></span>
                     <span>Neutral</span>
                 </div>
-                <div class="mood-option" onclick="updateMood('stressed')">
+                <div class="mood-option mood-stressed">
                     <span class="dot red"></span>
                     <span>Stressed</span>
                 </div>
@@ -43,7 +46,58 @@
         </div>
     </div>
 
-    <script src="../js/router.js"></script>
+    <script>
+        (function () {
+            // 1. Configuration
+            const CURRENT_USER_MOOD = 'neutral';
+
+            const syncUI = () => {
+                const stateText = document.querySelector('.current-mood');
+                const spriteImg = document.getElementById('mood-sprite');
+                const moodOptions = document.querySelectorAll('.mood-option');
+
+                // Check if elements exist (Crucial for routers)
+                if (!stateText || !spriteImg || !document.querySelector(`.mood-${CURRENT_USER_MOOD}`)) {
+                    return false;
+                }
+
+                function updateUI(mood) {
+                    const targetOption = document.querySelector(`.mood-${mood}`);
+                    if (!targetOption) return;
+
+                    // Update Label
+                    stateText.textContent = mood.charAt(0).toUpperCase() + mood.slice(1);
+
+                    // Update Animation via SpriteEngine
+                    if (window.SpriteEngine) {
+                        window.SpriteEngine.play(spriteImg, 'pikachu', mood, 400);
+                    }
+
+                    // Update Dots
+                    moodOptions.forEach(opt => opt.classList.remove('active'));
+                    targetOption.classList.add('active');
+                }
+
+                // Attach Click Listeners for testing
+                moodOptions.forEach(option => {
+                    option.onclick = () => {
+                        if (option.classList.contains('mood-happy')) updateUI('happy');
+                        if (option.classList.contains('mood-neutral')) updateUI('neutral');
+                        if (option.classList.contains('mood-stressed')) updateUI('stressed');
+                    };
+                });
+
+                // Initial Run
+                updateUI(CURRENT_USER_MOOD);
+                return true;
+            };
+
+            // Retry loop to ensure elements are found after router injection
+            const checkExist = setInterval(() => {
+                if (syncUI()) clearInterval(checkExist);
+            }, 20);
+        })();
+    </script>
 </body>
 
 </html>
