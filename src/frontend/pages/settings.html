@@ -30,8 +30,8 @@
 
             <div class="settings-row">
                 <div class="row-info">
-                    <span class="row-title">Widget Visibility</span>
-                    <span class="row-desc">Show on top of all apps</span>
+                    <span class="row-title">Character-only Widget Mode</span>
+                    <span class="row-desc">Switch to compact floating companion view</span>
                 </div>
                 <label class="switch">
                     <input type="checkbox" id="widget-toggle">
@@ -51,6 +51,30 @@
             </div>
         </div>
     </div>
+
+    <script>
+        (async function () {
+            const widgetToggle = document.getElementById('widget-toggle');
+            if (!widgetToggle || !window.api) {
+                return;
+            }
+
+            try {
+                const currentMode = await window.api.getWidgetOnlyMode();
+                widgetToggle.checked = Boolean(currentMode);
+            } catch (_error) {
+                widgetToggle.checked = false;
+            }
+
+            widgetToggle.addEventListener('change', async () => {
+                try {
+                    await window.api.setWidgetOnlyMode(widgetToggle.checked);
+                } catch (_error) {
+                    widgetToggle.checked = !widgetToggle.checked;
+                }
+            });
+        })();
+    </script>
 </body>
 
 </html>
