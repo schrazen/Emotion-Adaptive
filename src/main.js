@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, screen } = require('electron');
 const path = require('path');
 const { initializeIPC } = require('./backend/router');
 const fs = require('fs');
@@ -75,6 +75,19 @@ function applyWindowMode() {
 
     mainWindow.setSize(380, 480);
     mainWindow.loadFile(path.join(__dirname, 'frontend/pages/main.html'));
+}
+
+function centerMainWindow() {
+    if (!mainWindow || mainWindow.isDestroyed()) {
+        return;
+    }
+
+    const bounds = mainWindow.getBounds();
+    const display = screen.getDisplayNearestPoint({ x: bounds.x, y: bounds.y });
+    const workArea = display.workArea;
+    const centerX = Math.round(workArea.x + (workArea.width - bounds.width) / 2);
+    const centerY = Math.round(workArea.y + (workArea.height - bounds.height) / 2);
+    mainWindow.setPosition(centerX, centerY);
 }
 
 function createWindow() {
@@ -180,10 +193,17 @@ ipcMain.handle('widget:set-mode', (_event, enabled) => {
     return widgetOnlyMode;
 });
 
+ipcMain.handle('widget:return-to-normal', () => {
+    widgetOnlyMode = false;
+    applyWindowMode();
+    centerMainWindow();
+    return widgetOnlyMode;
+});
+
 ipcMain.handle('character:get-selected', () => selectedCharacter);
 
 ipcMain.handle('character:set-selected', (_event, character) => {
-    const next = character === 'kirby' ? 'kirby' : 'pikachu';
+    const next = character === 'kirby' || character === 'bmo' ? character : 'pikachu';
     selectedCharacter = next;
     return selectedCharacter;
 });

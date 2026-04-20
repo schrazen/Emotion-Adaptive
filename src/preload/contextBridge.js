@@ -17,6 +17,7 @@ contextBridge.exposeInMainWorld('api', {
     onGlobalKeyActivity: (callback) => ipcRenderer.on('global-key-activity', (_event, data) => callback(data)),
     getWidgetOnlyMode: () => ipcRenderer.invoke('widget:get-mode'),
     setWidgetOnlyMode: (enabled) => ipcRenderer.invoke('widget:set-mode', enabled),
+    returnToNormalMode: () => ipcRenderer.invoke('widget:return-to-normal'),
     getSelectedCharacter: () => ipcRenderer.invoke('character:get-selected'),
     setSelectedCharacter: (character) => ipcRenderer.invoke('character:set-selected', character),
     beginWidgetDrag: (screenX, screenY) => ipcRenderer.send('widget:drag-start', { screenX, screenY }),

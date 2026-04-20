@@ -80,6 +80,7 @@
     </main>
 
     <script src="../js/spriteEngine.js"></script>
+    <script src="../js/moodAlgorithmConfig.js"></script>
     <script src="../js/moodTracker.js"></script>
     <script>
         (function () {
@@ -96,6 +97,7 @@
                 const value = String(mood || 'Neutral').toLowerCase();
                 if (value === 'angry') return 'angry';
                 if (value === 'happy') return 'happy';
+                if (value === 'focused') return 'focused';
                 if (value === 'neutral') return 'neutral';
                 return 'neutral';
             }
@@ -106,8 +108,9 @@
 
                 const applyCharacter = (character) => {
                     const selectedCharacter = character || 'pikachu';
+                    const spriteMood = moodKey === 'focused' ? 'neutral' : moodKey;
                     if (window.SpriteEngine) {
-                        window.SpriteEngine.play(sprite, selectedCharacter, moodKey, 420);
+                        window.SpriteEngine.play(sprite, selectedCharacter, spriteMood, 420);
                     }
                 };
 
@@ -119,11 +122,18 @@
             }
 
             async function openMainApp() {
-                if (!window.api || !window.api.setWidgetOnlyMode) {
+                if (!window.api) {
                     return;
                 }
 
-                await window.api.setWidgetOnlyMode(false);
+                if (typeof window.api.returnToNormalMode === 'function') {
+                    await window.api.returnToNormalMode();
+                    return;
+                }
+
+                if (typeof window.api.setWidgetOnlyMode === 'function') {
+                    await window.api.setWidgetOnlyMode(false);
+                }
             }
 
             function processQuickClicks() {
