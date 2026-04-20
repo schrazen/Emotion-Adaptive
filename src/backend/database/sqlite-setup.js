@@ -1,8 +1,12 @@
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
+const fs = require('fs');
+
+const databaseRoot = process.env.EAUIS_DATA_DIR || path.resolve(__dirname);
+fs.mkdirSync(databaseRoot, { recursive: true });
 
 // Initialize database
-const dbPath = path.resolve(__dirname, 'eauis.db');
+const dbPath = path.join(databaseRoot, 'eauis.db');
 const db = new sqlite3.Database(dbPath, (err) => {
     if (err) {
         console.error('Error opening database', err.message);
