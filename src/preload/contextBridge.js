@@ -12,6 +12,7 @@ contextBridge.exposeInMainWorld('api', {
     closeWindow: () => ipcRenderer.send('window:close'),
     getPageContent: (pageName) => ipcRenderer.invoke('page:load', pageName),
     getMood: () => ipcRenderer.invoke('get-mood'),
+    getMoodHistory: (limit) => ipcRenderer.invoke('get-mood-history', limit),
     saveMoodSnapshot: (data) => ipcRenderer.invoke('save-mood-snapshot', data),
     onMoodUpdate: (callback) => ipcRenderer.on('update-ui', (_event, state) => callback(state)),
     onGlobalKeyActivity: (callback) => ipcRenderer.on('global-key-activity', (_event, data) => callback(data)),

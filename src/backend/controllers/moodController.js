@@ -29,6 +29,18 @@ class MoodController {
             return { computed_mood: 'Neutral', apm: 0, source: 'system-fallback' };
         }
     }
+
+    async handleGetMoodHistory(_event, limit) {
+        try {
+            const numericLimit = Number(limit);
+            const safeLimit = Number.isFinite(numericLimit) && numericLimit > 0 ? Math.min(Math.floor(numericLimit), 50) : 20;
+            const history = await moodService.getMoodHistory(safeLimit);
+            return { success: true, history };
+        } catch (error) {
+            console.error('Get mood history controller error', error);
+            return { success: false, history: [], error: error.message };
+        }
+    }
 }
 
 module.exports = new MoodController();

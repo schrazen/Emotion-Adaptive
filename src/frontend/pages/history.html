@@ -21,58 +21,150 @@
                 <i class='bx bx-search search-icon'></i>
                 <input type="text" placeholder="Search" id="history-search">
             </div>
+
+            <div class="history-summary" id="history-summary">
+                <span class="summary-pill" id="session-count-pill">0 sessions</span>
+                <span class="summary-note" id="session-note">Loading session history...</span>
+            </div>
         </div>
 
         <div class="history-list" id="history-items">
-            <div class="history-card">
-                <div class="card-left">
-                    <h2 class="history-date">Apr. 13, 2026 (Today)</h2>
-                    <p class="history-state">Main State: <span>Neutral</span></p>
+                <div class="history-card history-empty" id="history-empty">
+                    <div class="card-left">
+                        <h2 class="history-date">No history yet</h2>
+                        <p class="history-state">Start typing in the app to create your first session.</p>
+                    </div>
                 </div>
-                <div class="card-right">
-                    <span class="trend-label positive"><i class='bx bx-trending-up'></i> 30%</span>
-                    <div class="apm-value">20</div>
-                    <div class="apm-label">Action Per Minute</div>
-                </div>
-            </div>
-
-            <div class="history-card">
-                <div class="card-left">
-                    <h2 class="history-date">Apr. 12, 2026 (Yesterday)</h2>
-                    <p class="history-state">Main State: <span>Angry</span></p>
-                </div>
-                <div class="card-right">
-                    <span class="trend-label negative"><i class='bx bx-trending-down'></i> 20%</span>
-                    <div class="apm-value">70</div>
-                    <div class="apm-label">Action Per Minute</div>
-                </div>
-            </div>
-
-            <div class="history-card">
-                <div class="card-left">
-                    <h2 class="history-date">Apr. 11, 2026</h2>
-                    <p class="history-state">Main State: <span>Happy</span></p>
-                </div>
-                <div class="card-right">
-                    <span class="trend-label positive"><i class='bx bx-trending-up'></i> 30%</span>
-                    <div class="apm-value">40</div>
-                    <div class="apm-label">Action Per Minute</div>
-                </div>
-            </div>
-
-            <div class="history-card">
-                <div class="card-left">
-                    <h2 class="history-date">Apr. 11, 2026</h2>
-                    <p class="history-state">Main State: <span>Happy</span></p>
-                </div>
-                <div class="card-right">
-                    <span class="trend-label positive"><i class='bx bx-trending-up'></i> 30%</span>
-                    <div class="apm-value">40</div>
-                    <div class="apm-label">Action Per Minute</div>
-                </div>
-            </div>
         </div>
     </div>
+
+        <script>
+            (function () {
+                const historyItems = document.getElementById('history-items');
+                const searchInput = document.getElementById('history-search');
+                const sessionCountPill = document.getElementById('session-count-pill');
+                const sessionNote = document.getElementById('session-note');
+                const emptyState = document.getElementById('history-empty');
+
+                let historyData = [];
+
+                function escapeHtml(value) {
+                    return String(value)
+                        .replace(/&/g, '&amp;')
+                        .replace(/</g, '&lt;')
+                        .replace(/>/g, '&gt;')
+                        .replace(/"/g, '&quot;')
+                        .replace(/'/g, '&#39;');
+                }
+
+                function formatDateRange(startTimestamp, endTimestamp) {
+                    const start = new Date(startTimestamp);
+                    const end = new Date(endTimestamp);
+                    const dateFormatter = new Intl.DateTimeFormat('en-US', {
+                        month: 'short',
+                        day: '2-digit',
+                        year: 'numeric',
+                    });
+                    const timeFormatter = new Intl.DateTimeFormat('en-US', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                    });
+
+                    const sameDay = start.toDateString() === end.toDateString();
+                    if (sameDay) {
+                        return `${dateFormatter.format(start)} • ${timeFormatter.format(start)} - ${timeFormatter.format(end)}`;
+                    }
+
+                    return `${dateFormatter.format(start)} ${timeFormatter.format(start)} → ${dateFormatter.format(end)} ${timeFormatter.format(end)}`;
+                }
+
+                function formatComparison(value) {
+                    if (value == null) {
+                        return { label: 'First session', className: 'neutral', icon: 'bx bx-dot-circle' };
+                    }
+
+                    const isPositive = value >= 0;
+                    const absolute = Math.abs(value).toFixed(2).replace(/\.00$/, '');
+                    return {
+                        label: `${isPositive ? '+' : '-'}${absolute}% vs prev session`,
+                        className: isPositive ? 'positive' : 'negative',
+                        icon: isPositive ? 'bx bx-trending-up' : 'bx bx-trending-down',
+                    };
+                }
+
+                function renderHistory(items) {
+                    const filtered = items.filter((session) => {
+                        const query = (searchInput?.value || '').trim().toLowerCase();
+                        if (!query) {
+                            return true;
+                        }
+
+                        return [
+                            session.mainState,
+                            session.averageApm,
+                            session.triggerCount,
+                            session.startTimestamp,
+                            session.endTimestamp,
+                        ].some((field) => String(field).toLowerCase().includes(query));
+                    });
+
+                    if (!filtered.length) {
+                        historyItems.innerHTML = '';
+                        historyItems.appendChild(emptyState);
+                        emptyState.style.display = 'flex';
+                        sessionNote.textContent = historyData.length ? 'No matching sessions found.' : 'No session data has been recorded yet.';
+                        return;
+                    }
+
+                    emptyState.style.display = 'none';
+                    historyItems.innerHTML = filtered.map((session) => {
+                        const comparison = formatComparison(session.apmDifferencePercent);
+                        const comparisonText = session.apmDifferencePercent == null
+                            ? 'First session'
+                            : `${session.apmDifferencePercent >= 0 ? '+' : '-'}${Math.abs(session.apmDifferencePercent).toFixed(2).replace(/\.00$/, '')}% vs prev session`;
+                        return `
+                            <div class="history-card">
+                                <div class="card-left">
+                                    <h2 class="history-date">${escapeHtml(formatDateRange(session.startTimestamp, session.endTimestamp))}</h2>
+                                    <p class="history-state">Main State: <span>${escapeHtml(session.mainState || 'Neutral')}</span></p>
+                                    <p class="history-meta">Triggered ${escapeHtml(session.triggerCount)} times</p>
+                                </div>
+                                <div class="card-right">
+                                    <span class="trend-label ${comparison.className}"><i class='${comparison.icon}'></i> ${escapeHtml(comparisonText)}</span>
+                                    <div class="apm-value">${escapeHtml(session.averageApm)}</div>
+                                    <div class="apm-label">Avg APM</div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+
+                    sessionNote.textContent = `Showing ${filtered.length} of ${historyData.length} sessions.`;
+                }
+
+                async function loadHistory() {
+                    if (!window.api || typeof window.api.getMoodHistory !== 'function') {
+                        sessionCountPill.textContent = 'History unavailable';
+                        sessionNote.textContent = 'The backend history API is not available in this view.';
+                        emptyState.style.display = 'flex';
+                        return;
+                    }
+
+                    const response = await window.api.getMoodHistory(20);
+                    historyData = response && response.success ? response.history : [];
+                    sessionCountPill.textContent = `${historyData.length} session${historyData.length === 1 ? '' : 's'}`;
+                    renderHistory(historyData);
+                }
+
+                searchInput.addEventListener('input', () => renderHistory(historyData));
+
+                loadHistory().catch((error) => {
+                    console.error('Failed to load history', error);
+                    sessionCountPill.textContent = 'History error';
+                    sessionNote.textContent = 'Unable to load session history.';
+                    emptyState.style.display = 'flex';
+                });
+            })();
+        </script>
 </body>
 
 </html>

@@ -14,6 +14,10 @@ class MoodService {
     async getLatestMood() {
         return moodLogRepo.getLatestMood();
     }
+
+    async getMoodHistory(limit = 20) {
+        return moodLogRepo.getMoodHistory(limit);
+    }
 }
 
 module.exports = new MoodService();
