@@ -1,7 +1,8 @@
 const { app, BrowserWindow, ipcMain, screen } = require('electron');
 const path = require('path');
-const { initializeIPC } = require('./backend/router');
 const fs = require('fs');
+
+let initializeIPC = null;
 
 let uIOhook = null;
 try {
@@ -13,15 +14,6 @@ try {
 const gotSingleInstanceLock = app.requestSingleInstanceLock();
 if (!gotSingleInstanceLock) {
     app.quit();
-}
-
-// Use a workspace-local session cache path to avoid permission issues in default Chromium cache dirs.
-try {
-    const localSessionPath = path.join(__dirname, 'backend', 'database', 'electron-session');
-    fs.mkdirSync(localSessionPath, { recursive: true });
-    app.setPath('sessionData', localSessionPath);
-} catch (error) {
-    console.warn('Failed to set local sessionData path:', error.message);
 }
 
 let mainWindow = null;
@@ -147,6 +139,19 @@ function startGlobalKeyboardTracking() {
 
 // APP STARTUP
 app.whenReady().then(() => {
+    const databaseRoot = path.join(app.getPath('userData'), 'database');
+    fs.mkdirSync(databaseRoot, { recursive: true });
+    process.env.EAUIS_DATA_DIR = databaseRoot;
+
+    try {
+        const localSessionPath = path.join(app.getPath('userData'), 'electron-session');
+        fs.mkdirSync(localSessionPath, { recursive: true });
+        app.setPath('sessionData', localSessionPath);
+    } catch (error) {
+        console.warn('Failed to set local sessionData path:', error.message);
+    }
+
+    initializeIPC = require('./backend/router').initializeIPC;
     initializeIPC();
     createWindow();
     startGlobalKeyboardTracking();

@@ -74,9 +74,20 @@ This repository is intended to support:
 
 For collaborator-specific setup, see SETUP.md.
 
-## Roadmap (Short)
+## End-User Install
 
-- v0.1: app shell + basic widget UI
-- v0.2: mood logic + live UI adaptation
-- v0.3: logging, survey, and settings interface
-- v0.4: analysis outputs for evaluation/reporting
+Users do not need Node.js, npm, or Electron installed if you ship the packaged build from GitHub Releases.
+
+Build a Windows installer or portable app:
+
+1. Run: npm install
+2. Run: npm run dist:win
+3. Or run: npm run dist:portable
+4. Upload the files from the release folder to GitHub Releases
+
+Install from command line using the latest GitHub release:
+
+1. Open PowerShell
+2. Run: .\scripts\install.ps1
+
+The script downloads the latest portable release from GitHub and unpacks it locally.
