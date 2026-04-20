@@ -63,5 +63,5 @@ window.SpriteEngine = (function () {
         }, speed);
     }
 
-    return { play, preload: () => {} }; // Preload logic kept simple
+    return { play, preload: () => {} };
 })();
