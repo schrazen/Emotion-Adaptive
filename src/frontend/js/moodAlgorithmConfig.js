@@ -7,12 +7,10 @@ window.MoodAlgorithmConfig = {
     // Emotional memory: higher decay keeps moods around longer; lower decay forgets faster.
     angerDecay: 0.88,
     joyDecay: 0.84,
-    focusDecay: 0.90,
 
     // Minimum accumulated level required before a mood can win.
     angerLevelThreshold: 3.5,
     joyLevelThreshold: 3.0,
-    focusLevelThreshold: 2.5,
 
     // If two moods compete, this is the extra lead required to beat the other.
     moodLeadGap: 0.75,
@@ -23,7 +21,6 @@ window.MoodAlgorithmConfig = {
     instabilityBoost: 1.1,
     errorRateBoost: 0.08,
     backspaceBurstBoost: 0.35,
-    focusBoost: 1.7,
 
     // Instability is derived from the gap between short burst and baseline typing speed.
     instabilityThreshold: 160,
@@ -33,9 +30,7 @@ window.MoodAlgorithmConfig = {
     backspaceBurstWindowMs: 2000,
     backspaceBurstThreshold: 4,
 
-    // Calm/focused typing can now surface as a real state instead of collapsing to Neutral.
-    focusedApmMin: 110,
-    focusedErrorRateMax: 5,
+    // Strict 3-state model: Angry, Happy, Neutral.
 
     // Timing for joy detection and how long Happy can linger after joy ends.
     joyWindowMs: 2800,

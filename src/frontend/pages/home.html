@@ -38,10 +38,6 @@
                     <span class="dot gray"></span>
                     <span>Neutral</span>
                 </div>
-                <div class="mood-option mood-focused">
-                    <span class="dot gray"></span>
-                    <span>Focused</span>
-                </div>
                 <div class="mood-option mood-angry">
                     <span class="dot red"></span>
                     <span>Angry</span>
@@ -66,7 +62,7 @@
                 const value = String(mood || 'Neutral').toLowerCase();
                 if (value === 'angry') return 'angry';
                 if (value === 'happy') return 'happy';
-                if (value === 'focused') return 'focused';
+                if (value === 'focused') return 'neutral';
                 if (value === 'neutral') return 'neutral';
                 return 'neutral';
             }
@@ -85,9 +81,8 @@
 
                 const applyCharacter = (character) => {
                     const selectedWidget = character || 'pikachu';
-                    const spriteMood = moodKey === 'focused' ? 'neutral' : moodKey;
                     if (window.SpriteEngine) {
-                        window.SpriteEngine.play(spriteImg, selectedWidget, spriteMood, 400);
+                        window.SpriteEngine.play(spriteImg, selectedWidget, moodKey, 400);
                     }
                 };
 

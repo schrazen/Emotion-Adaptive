@@ -97,7 +97,7 @@
                 const value = String(mood || 'Neutral').toLowerCase();
                 if (value === 'angry') return 'angry';
                 if (value === 'happy') return 'happy';
-                if (value === 'focused') return 'focused';
+                if (value === 'focused') return 'neutral';
                 if (value === 'neutral') return 'neutral';
                 return 'neutral';
             }
@@ -108,9 +108,8 @@
 
                 const applyCharacter = (character) => {
                     const selectedCharacter = character || 'pikachu';
-                    const spriteMood = moodKey === 'focused' ? 'neutral' : moodKey;
                     if (window.SpriteEngine) {
-                        window.SpriteEngine.play(sprite, selectedCharacter, spriteMood, 420);
+                        window.SpriteEngine.play(sprite, selectedCharacter, moodKey, 420);
                     }
                 };
 

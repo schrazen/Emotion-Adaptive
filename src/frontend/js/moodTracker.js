@@ -62,7 +62,6 @@ window.MoodTracker = (function () {
     const MOOD_COOLDOWN_MS = config.moodCooldownMs ?? 3000;
     let angerLevel = 0;
     let joyLevel = 0;
-    let focusLevel = 0;
     const recentMoodDecisions = [];
 
     let globalInputHooked = false;
@@ -222,20 +221,16 @@ window.MoodTracker = (function () {
     function updateEmotionalLevels({ joyActive, frustrationText, instability, errorRate, backspaceBurstCount, apm }) {
         const angerDecay = config.angerDecay ?? 0.88;
         const joyDecay = config.joyDecay ?? 0.84;
-        const focusDecay = config.focusDecay ?? 0.90;
 
         const frustrationTextBoost = config.frustrationTextBoost ?? 1.4;
         const instabilityBoost = config.instabilityBoost ?? 1.1;
         const errorRateBoost = config.errorRateBoost ?? 0.08;
         const backspaceBurstBoost = config.backspaceBurstBoost ?? 0.9;
         const joyBoost = config.joyBoost ?? 3.0;
-        const focusBoost = config.focusBoost ?? 1.7;
 
         const instabilityThreshold = config.instabilityThreshold ?? 160;
         const instabilityScale = config.instabilityScale ?? 90;
         const backspaceBurstThreshold = config.backspaceBurstThreshold ?? 4;
-        const focusedApmMin = config.focusedApmMin ?? 110;
-        const focusedErrorRateMax = config.focusedErrorRateMax ?? 5;
 
         const instabilityExcess = Math.max(0, instability - instabilityThreshold) / Math.max(instabilityScale, 1);
         const errorPressure = Math.max(0, errorRate - 5) / 10;
@@ -248,21 +243,15 @@ window.MoodTracker = (function () {
             (backspacePressure * backspaceBurstBoost);
 
         const joyImmediate = joyActive ? joyBoost : 0;
-        const focusImmediate = (apm >= focusedApmMin && errorRate <= focusedErrorRateMax && !joyActive && frustrationText.score === 0)
-            ? focusBoost
-            : 0;
 
         angerLevel = clampLevel((angerLevel * angerDecay) + angerImmediate);
         joyLevel = clampLevel((joyLevel * joyDecay) + joyImmediate);
-        focusLevel = clampLevel((focusLevel * focusDecay) + focusImmediate);
 
         return {
             angerLevel,
             joyLevel,
-            focusLevel,
             angerImmediate,
             joyImmediate,
-            focusImmediate,
             instabilityExcess,
             errorPressure,
             backspacePressure,
@@ -272,10 +261,8 @@ window.MoodTracker = (function () {
     function selectMoodFromLevels(levels, context) {
         const angryLevelThreshold = config.angerLevelThreshold ?? 3.5;
         const joyLevelThreshold = config.joyLevelThreshold ?? 3.0;
-        const focusLevelThreshold = config.focusLevelThreshold ?? 2.5;
         const moodLeadGap = config.moodLeadGap ?? 0.75;
 
-        const focusAllowed = context.apm >= (config.focusedApmMin ?? 110) && context.errorRate <= (config.focusedErrorRateMax ?? 5);
         const angryLead = levels.angerLevel >= levels.joyLevel + moodLeadGap;
         const happyLead = levels.joyLevel >= levels.angerLevel + moodLeadGap;
 
@@ -285,10 +272,6 @@ window.MoodTracker = (function () {
 
         if (levels.joyLevel >= joyLevelThreshold && happyLead) {
             return 'Happy';
-        }
-
-        if (focusAllowed && levels.focusLevel >= focusLevelThreshold) {
-            return 'Focused';
         }
 
         return 'Neutral';
@@ -378,7 +361,7 @@ window.MoodTracker = (function () {
         const isFrustrated = isFrustratedByText || (!joyActive && isFrustratedBySpeed);
         const moodScore = Number((levels.joyLevel - levels.angerLevel).toFixed(2));
 
-        let targetMood = selectMoodFromLevels(levels, { apm, errorRate });
+        let targetMood = selectMoodFromLevels(levels);
 
         if (targetMood === 'Neutral' && currentState.mood === 'Happy' && timeSinceLastChange < HAPPY_LINGER_MS) {
             // Keep happy only briefly to avoid stale joy lock.
@@ -391,7 +374,6 @@ window.MoodTracker = (function () {
             moodScore,
             angerLevel: Number(levels.angerLevel.toFixed(2)),
             joyLevel: Number(levels.joyLevel.toFixed(2)),
-            focusLevel: Number(levels.focusLevel.toFixed(2)),
         });
         if (recentMoodDecisions.length > (config.moodHistorySize ?? 50)) {
             recentMoodDecisions.shift();
@@ -422,7 +404,6 @@ window.MoodTracker = (function () {
                         frustrationTextAgeMs: frustrationText.textAgeMs,
                         angerLevel: Number(levels.angerLevel.toFixed(2)),
                         joyLevel: Number(levels.joyLevel.toFixed(2)),
-                        focusLevel: Number(levels.focusLevel.toFixed(2)),
                     },
                 };
             }
@@ -449,7 +430,6 @@ window.MoodTracker = (function () {
                     frustrationTextAgeMs: frustrationText.textAgeMs,
                     angerLevel: Number(levels.angerLevel.toFixed(2)),
                     joyLevel: Number(levels.joyLevel.toFixed(2)),
-                    focusLevel: Number(levels.focusLevel.toFixed(2)),
                 },
             };
         }
@@ -476,7 +456,6 @@ window.MoodTracker = (function () {
                 frustrationTextAgeMs: frustrationText.textAgeMs,
                 angerLevel: Number(levels.angerLevel.toFixed(2)),
                 joyLevel: Number(levels.joyLevel.toFixed(2)),
-                focusLevel: Number(levels.focusLevel.toFixed(2)),
             },
         };
     }
