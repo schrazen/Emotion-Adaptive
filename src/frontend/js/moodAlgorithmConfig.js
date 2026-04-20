@@ -6,6 +6,7 @@ window.MoodAlgorithmConfig = {
 
     // Emotional memory: higher decay keeps moods around longer; lower decay forgets faster.
     angerDecay: 0.88,
+    angerDecayNoEvidence: 0.76,
     joyDecay: 0.84,
 
     // Minimum accumulated level required before a mood can win.
@@ -15,15 +16,20 @@ window.MoodAlgorithmConfig = {
     // If two moods compete, this is the extra lead required to beat the other.
     moodLeadGap: 0.75,
 
+    // Angry must have enough current evidence; level memory alone should not flip mood.
+    angryTransitionMinEvidenceScore: 2,
+    angryEvidenceErrorPressureMin: 1.2,
+    angryEvidenceInstabilityExcessMin: 2.5,
+
     // Immediate boosts applied when a strong signal appears in the current tick.
     joyBoost: 3.0,
     frustrationTextBoost: 1.4,
-    instabilityBoost: 1.1,
+    instabilityBoost: 0.8,
     errorRateBoost: 0.08,
     backspaceBurstBoost: 0.35,
 
     // Instability is derived from the gap between short burst and baseline typing speed.
-    instabilityThreshold: 160,
+    instabilityThreshold: 220,
     instabilityScale: 90,
 
     // Backspace burst looks at recent corrections, not just overall error rate.

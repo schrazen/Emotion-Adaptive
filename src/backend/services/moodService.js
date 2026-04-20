@@ -5,7 +5,8 @@ class MoodService {
         const payload = {
             apm: data.apm,
             computed_mood: data.computedMood,
-            source: data.source || 'widget'
+            source: data.source || 'widget',
+            session_id: process.env.EAUIS_SESSION_ID || null,
         };
 
         return moodLogRepo.insertMoodLog(payload);

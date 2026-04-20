@@ -62,9 +62,9 @@ function buildSessionSummary(rows, previousAverageApm = null) {
 class MoodLogRepository {
     insertMoodLog(moodData) {
         return new Promise((resolve, reject) => {
-            const query = `INSERT INTO mood_logs (apm, computed_mood, source) VALUES (?, ?, ?)`;
+            const query = `INSERT INTO mood_logs (apm, computed_mood, source, session_id) VALUES (?, ?, ?, ?)`;
             
-            db.run(query, [moodData.apm, moodData.computed_mood, moodData.source], function(err) {
+            db.run(query, [moodData.apm, moodData.computed_mood, moodData.source, moodData.session_id || null], function(err) {
                 if (err) {
                     reject(err);
                 } else {
@@ -77,7 +77,7 @@ class MoodLogRepository {
     getLatestMood() {
         return new Promise((resolve, reject) => {
             const query = `
-                SELECT id, apm, computed_mood, source, timestamp
+                SELECT id, apm, computed_mood, source, session_id, timestamp
                 FROM mood_logs
                 ORDER BY id DESC
                 LIMIT 1
@@ -96,7 +96,7 @@ class MoodLogRepository {
     getMoodHistory(limit = 20, sessionGapMinutes = DEFAULT_SESSION_GAP_MINUTES) {
         return new Promise((resolve, reject) => {
             const query = `
-                SELECT id, apm, computed_mood, source, timestamp
+                SELECT id, apm, computed_mood, source, session_id, timestamp
                 FROM mood_logs
                 ORDER BY timestamp ASC, id ASC
             `;
@@ -111,6 +111,7 @@ class MoodLogRepository {
                 const gapMs = Math.max(1, sessionGapMinutes) * 60 * 1000;
                 let currentSession = [];
                 let lastTimestampMs = null;
+                let lastSessionKey = null;
 
                 rows.forEach((row) => {
                     const timestampMs = parseTimestampMs(row.timestamp);
@@ -118,7 +119,12 @@ class MoodLogRepository {
                         return;
                     }
 
-                    const isNewSession = lastTimestampMs != null && (timestampMs - lastTimestampMs > gapMs);
+                    const sessionId = row.session_id || null;
+                    const sessionKey = sessionId == null ? '__legacy__' : `sid:${sessionId}`;
+                    const hasSessionBoundary = lastSessionKey != null && sessionKey !== lastSessionKey;
+
+                    const isGapSessionBoundary = sessionId == null && lastTimestampMs != null && (timestampMs - lastTimestampMs > gapMs);
+                    const isNewSession = hasSessionBoundary || isGapSessionBoundary;
                     if (isNewSession && currentSession.length > 0) {
                         sessions.push(currentSession);
                         currentSession = [];
@@ -126,6 +132,7 @@ class MoodLogRepository {
 
                     currentSession.push(row);
                     lastTimestampMs = timestampMs;
+                    lastSessionKey = sessionKey;
                 });
 
                 if (currentSession.length > 0) {

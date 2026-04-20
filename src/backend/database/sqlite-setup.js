@@ -13,13 +13,26 @@ const db = new sqlite3.Database(dbPath, (err) => {
     } else {
         console.log('Connected to the SQLite database.');
 
-        db.run(`CREATE TABLE IF NOT EXISTS mood_logs (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            apm INTEGER NOT NULL,
-            computed_mood TEXT,
-            source TEXT,
-            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-        )`);
+        db.serialize(() => {
+            db.run(`CREATE TABLE IF NOT EXISTS mood_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                apm INTEGER NOT NULL,
+                computed_mood TEXT,
+                source TEXT,
+                session_id TEXT,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+            )`);
+
+            db.run(`ALTER TABLE mood_logs ADD COLUMN session_id TEXT`, (alterErr) => {
+                if (!alterErr) {
+                    return;
+                }
+
+                if (!String(alterErr.message || '').includes('duplicate column name')) {
+                    console.error('Failed to ensure session_id column on mood_logs:', alterErr.message);
+                }
+            });
+        });
     }
 });
 

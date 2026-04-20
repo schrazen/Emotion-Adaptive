@@ -16,6 +16,14 @@ if (!gotSingleInstanceLock) {
     app.quit();
 }
 
+try {
+    const localSessionPath = path.join(app.getPath('userData'), 'electron-session');
+    fs.mkdirSync(localSessionPath, { recursive: true });
+    app.setPath('sessionData', localSessionPath);
+} catch (error) {
+    console.warn('Failed to set local sessionData path:', error.message);
+}
+
 let mainWindow = null;
 let widgetOnlyMode = false;
 let dragSession = null;
@@ -142,14 +150,7 @@ app.whenReady().then(() => {
     const databaseRoot = path.join(app.getPath('userData'), 'database');
     fs.mkdirSync(databaseRoot, { recursive: true });
     process.env.EAUIS_DATA_DIR = databaseRoot;
-
-    try {
-        const localSessionPath = path.join(app.getPath('userData'), 'electron-session');
-        fs.mkdirSync(localSessionPath, { recursive: true });
-        app.setPath('sessionData', localSessionPath);
-    } catch (error) {
-        console.warn('Failed to set local sessionData path:', error.message);
-    }
+    process.env.EAUIS_SESSION_ID = `${Date.now()}-${process.pid}-${Math.random().toString(36).slice(2, 8)}`;
 
     initializeIPC = require('./backend/router').initializeIPC;
     initializeIPC();

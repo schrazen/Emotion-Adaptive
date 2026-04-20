@@ -218,8 +218,9 @@ window.MoodTracker = (function () {
         return Math.max(0, Math.min(level, 10));
     }
 
-    function updateEmotionalLevels({ joyActive, frustrationText, instability, errorRate, backspaceBurstCount, apm }) {
+    function updateEmotionalLevels({ joyActive, frustrationText, instability, errorRate, backspaceBurstCount, apm, hasStrongAngryEvidence }) {
         const angerDecay = config.angerDecay ?? 0.88;
+        const angerDecayNoEvidence = config.angerDecayNoEvidence ?? 0.76;
         const joyDecay = config.joyDecay ?? 0.84;
 
         const frustrationTextBoost = config.frustrationTextBoost ?? 1.4;
@@ -244,7 +245,9 @@ window.MoodTracker = (function () {
 
         const joyImmediate = joyActive ? joyBoost : 0;
 
-        angerLevel = clampLevel((angerLevel * angerDecay) + angerImmediate);
+        const effectiveAngerDecay = hasStrongAngryEvidence ? angerDecay : angerDecayNoEvidence;
+
+        angerLevel = clampLevel((angerLevel * effectiveAngerDecay) + angerImmediate);
         joyLevel = clampLevel((joyLevel * joyDecay) + joyImmediate);
 
         return {
@@ -258,15 +261,33 @@ window.MoodTracker = (function () {
         };
     }
 
+    function computeAngryEvidenceScore(context = {}) {
+        const instabilityEvidenceMin = config.angryEvidenceInstabilityExcessMin ?? 2.5;
+        const errorPressureEvidenceMin = config.angryEvidenceErrorPressureMin ?? 1.2;
+
+        let score = 0;
+        if (context.isFrustratedByText) score += 2;
+        if (context.isFrustratedBySpeed) score += 2;
+        if ((context.backspacePressure ?? 0) >= 1) score += 1;
+        if ((context.errorPressure ?? 0) >= errorPressureEvidenceMin) score += 1;
+        if ((context.instabilityExcess ?? 0) >= instabilityEvidenceMin) score += 1;
+        if (context.joyActive) score -= 1;
+
+        return score;
+    }
+
     function selectMoodFromLevels(levels, context) {
         const angryLevelThreshold = config.angerLevelThreshold ?? 3.5;
         const joyLevelThreshold = config.joyLevelThreshold ?? 3.0;
         const moodLeadGap = config.moodLeadGap ?? 0.75;
+        const angryTransitionMinEvidenceScore = config.angryTransitionMinEvidenceScore ?? 2;
 
         const angryLead = levels.angerLevel >= levels.joyLevel + moodLeadGap;
         const happyLead = levels.joyLevel >= levels.angerLevel + moodLeadGap;
+        const angryEvidenceScore = computeAngryEvidenceScore(context);
+        const angryAllowed = angryEvidenceScore >= angryTransitionMinEvidenceScore;
 
-        if (levels.angerLevel >= angryLevelThreshold && angryLead) {
+        if (levels.angerLevel >= angryLevelThreshold && angryLead && angryAllowed) {
             return 'Angry';
         }
 
@@ -342,15 +363,6 @@ window.MoodTracker = (function () {
         }).length;
 
         const backspaceBurstCount = metrics.backspaceBurstCount || 0;
-        const levels = updateEmotionalLevels({
-            joyActive,
-            frustrationText,
-            instability: metrics.instability ?? Math.max(0, burstApm - baselineApm),
-            errorRate,
-            backspaceBurstCount,
-            apm,
-        });
-
         const isSustainedAngry = apm >= SUSTAINED_ANGRY_APM_GTE && errorRate >= SUSTAINED_ANGRY_ERROR_RATE_GTE;
         const isSuddenBurstAngry =
             apm >= BURST_ANGRY_APM_GTE &&
@@ -359,9 +371,35 @@ window.MoodTracker = (function () {
             errorRate >= BURST_ANGRY_ERROR_RATE_GTE;
         const isFrustratedBySpeed = (isSustainedAngry || isSuddenBurstAngry) && speedScore >= MIN_SPEED_SCORE_FOR_ANGRY;
         const isFrustrated = isFrustratedByText || (!joyActive && isFrustratedBySpeed);
+        const hasStrongAngryEvidence = isFrustrated || backspaceBurstCount >= (config.backspaceBurstThreshold ?? 4);
+
+        const levels = updateEmotionalLevels({
+            joyActive,
+            frustrationText,
+            instability: metrics.instability ?? Math.max(0, burstApm - baselineApm),
+            errorRate,
+            backspaceBurstCount,
+            apm,
+            hasStrongAngryEvidence,
+        });
+        const angryEvidenceScore = computeAngryEvidenceScore({
+            joyActive,
+            isFrustratedByText,
+            isFrustratedBySpeed,
+            backspacePressure: levels.backspacePressure,
+            errorPressure: levels.errorPressure,
+            instabilityExcess: levels.instabilityExcess,
+        });
         const moodScore = Number((levels.joyLevel - levels.angerLevel).toFixed(2));
 
-        let targetMood = selectMoodFromLevels(levels);
+        let targetMood = selectMoodFromLevels(levels, {
+            joyActive,
+            isFrustratedByText,
+            isFrustratedBySpeed,
+            backspacePressure: levels.backspacePressure,
+            errorPressure: levels.errorPressure,
+            instabilityExcess: levels.instabilityExcess,
+        });
 
         if (targetMood === 'Neutral' && currentState.mood === 'Happy' && timeSinceLastChange < HAPPY_LINGER_MS) {
             // Keep happy only briefly to avoid stale joy lock.
@@ -399,6 +437,7 @@ window.MoodTracker = (function () {
                         isFrustratedByText,
                         speedScore,
                         isFrustrated,
+                        angryEvidenceScore,
                         frustrationTextScore: frustrationText.score,
                         frustrationTextMatches: frustrationText.matches,
                         frustrationTextAgeMs: frustrationText.textAgeMs,
@@ -425,6 +464,7 @@ window.MoodTracker = (function () {
                     isFrustratedByText,
                     speedScore,
                     isFrustrated,
+                    angryEvidenceScore,
                     frustrationTextScore: frustrationText.score,
                     frustrationTextMatches: frustrationText.matches,
                     frustrationTextAgeMs: frustrationText.textAgeMs,
@@ -451,6 +491,7 @@ window.MoodTracker = (function () {
                 isFrustratedByText,
                 speedScore,
                 isFrustrated,
+                angryEvidenceScore,
                 frustrationTextScore: frustrationText.score,
                 frustrationTextMatches: frustrationText.matches,
                 frustrationTextAgeMs: frustrationText.textAgeMs,
