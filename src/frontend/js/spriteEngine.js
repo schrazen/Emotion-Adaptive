@@ -27,8 +27,21 @@ window.SpriteEngine = (function () {
                 "../assets/sprites/kirby/kirby_angry1.png",
                 "../assets/sprites/kirby/kirby_angry2.png"
             ]
+        },
+        bmo: {
+            happy: [
+                "../assets/sprites/bmo/bmo_happy1.png",
+                "../assets/sprites/bmo/bmo_happy2.png"
+            ],
+            neutral: [
+                "../assets/sprites/bmo/bmo_neutral1.png",
+                "../assets/sprites/bmo/bmo_neutral2.png"
+            ],
+            angry: [
+                "../assets/sprites/bmo/bmo_angry1.png",
+                "../assets/sprites/bmo/bmo_angry2.png"
+            ]
         }
-
     };
 
     let interval = null;
