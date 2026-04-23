@@ -53,6 +53,8 @@ async function loadPage(page) {
             oldScript.remove();
         }
 
+        window.dispatchEvent(new CustomEvent('page-loaded', { detail: { page } }));
+
     } catch (error) {
         console.error("Navigation error:", error);
     }
