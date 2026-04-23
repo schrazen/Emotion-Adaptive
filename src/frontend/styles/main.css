@@ -25,78 +25,48 @@
     --fw-black: 900;
 }
 
-/* --- COLOR SCHEMES (Backgrounds/Text) --- */
-.theme-light {
-    --bg-main: #ffffff;
-    --text-primary: #000;
-    --card-bg: #fff;
-}
-
-.theme-dark {
-    --bg-main: #1a1a1a;
-    --text-primary: #fff;
-    --card-bg: #2d2d2d;
-}
-
-.theme-sepia {
-    --bg-main: #f4ecd8;
-    --text-primary: #5b4636;
-    --card-bg: #fdf6e3;
-}
-
-.theme-ocean {
-    --bg-main: #001f3f;
-    --text-primary: #e0f2f1;
-    --card-bg: #003366;
-}
-
-.theme-dracula {
-    --bg-main: #282a36;
-    --text-primary: #f8f8f2;
-    --card-bg: #44475a;
-}
-
-.theme-high-contrast {
+/* --- Dark Mode --- */
+[data-theme="dark"] {
     --bg-main: #000;
     --text-primary: #fff;
-    --card-bg: #000;
+    --text-secondary: #2d2d2d;
+    --card-bg: rgba(0, 0, 0, 0.02);
+    --card-border: #bababa;
+    --secondary-hover: #a4a4a4;
+    --accent-color: #000000;
+    --accent-color-hover: #131313;
+    --ctrl-btn: #ffffff;
+    --btn-hover: #ff4d4d;
 }
 
-/* --- ACCENT COLORS (Buttons/Borders) --- */
-.accent-blue {
-    --accent-color: #007bff;
+/* --- Happy --- */
+[data-emotion="happy"] {
+    --accent-color: #FFD700;
+    --btn-hover: #ffeb3b;
+}
+[data-theme="dark"][data-emotion="happy"] {
+    --bg-main: #1a1a00;
+    --card-bg: #2d2d00;
 }
 
-.accent-red {
-    --accent-color: #ff4d4d;
+/* --- Neutral --- */
+[data-emotion="neutral"] {
+    --accent-color: #2196f3;
+}
+[data-theme="dark"][data-emotion="neutral"] {
+    --bg-main: #0a192f;
+    --card-bg: #112240;
 }
 
-.accent-green {
-    --accent-color: #2ecc71;
+/* --- Angry --- */
+[data-emotion="angry"] {
+    --accent-color: #f44336;
+    --bg-main: #fff5f5;
 }
-
-.accent-purple {
-    --accent-color: #9b59b6;
-}
-
-.accent-orange {
-    --accent-color: #e67e22;
-}
-
-.accent-pink {
-    --accent-color: #ff69b4;
-}
-
-:root[data-font-family="Inter"] {
-    --font-main: 'Inter', -apple-system, sans-serif;
-}
-
-:root[data-font-family="Work Sans"] {
-    --font-main: 'Work Sans', -apple-system, sans-serif;
-}
-
-:root:not([data-font-family]) {
-    --font-main: 'Inter', -apple-system, sans-serif;
+[data-theme="dark"][data-emotion="angry"] {
+    --bg-main: #2b0000;
+    --text-primary: #ffcdd2;
+    --card-bg: #4a0000;
 }
 
 * {
