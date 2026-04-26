@@ -27,6 +27,7 @@ try {
 let mainWindow = null;
 let widgetOnlyMode = false;
 let dragSession = null;
+let resizeSession = null;
 let selectedCharacter = 'pikachu';
 let globalHookStarted = false;
 
@@ -75,6 +76,28 @@ function applyWindowMode() {
 
     mainWindow.setSize(380, 480);
     mainWindow.loadFile(path.join(__dirname, 'frontend/pages/main.html'));
+}
+
+function getResizeConstraints() {
+    if (widgetOnlyMode) {
+        return {
+            minWidth: 170,
+            minHeight: 170,
+            maxWidth: 420,
+            maxHeight: 420,
+        };
+    }
+
+    return {
+        minWidth: 340,
+        minHeight: 420,
+        maxWidth: 900,
+        maxHeight: 1000,
+    };
+}
+
+function clamp(value, minValue, maxValue) {
+    return Math.max(minValue, Math.min(maxValue, value));
 }
 
 function centerMainWindow() {
@@ -133,6 +156,18 @@ function startGlobalKeyboardTracking() {
             ctrlKey: event.ctrlKey,
             altKey: event.altKey,
             metaKey: event.metaKey,
+            when: Date.now(),
+        });
+    });
+
+    uIOhook.on('mousedown', (event) => {
+        if (!mainWindow || mainWindow.isDestroyed()) {
+            return;
+        }
+
+        mainWindow.webContents.send('global-mouse-activity', {
+            button: event.button,
+            clicks: event.clicks,
             when: Date.now(),
         });
     });
@@ -248,6 +283,57 @@ ipcMain.on('widget:drag-move', (_event, payload) => {
 
 ipcMain.on('widget:drag-end', () => {
     dragSession = null;
+});
+
+ipcMain.on('window:resize-start', (_event, payload) => {
+    if (!mainWindow || mainWindow.isDestroyed()) {
+        return;
+    }
+
+    if (!payload || typeof payload.screenX !== 'number' || typeof payload.screenY !== 'number') {
+        return;
+    }
+
+    const [winX, winY] = mainWindow.getPosition();
+    const [winWidth, winHeight] = mainWindow.getSize();
+    resizeSession = {
+        edge: payload.edge || 'bottom-right',
+        startMouseX: payload.screenX,
+        startMouseY: payload.screenY,
+        startWinX: winX,
+        startWinY: winY,
+        startWidth: winWidth,
+        startHeight: winHeight,
+    };
+});
+
+ipcMain.on('window:resize-move', (_event, payload) => {
+    if (!mainWindow || mainWindow.isDestroyed() || !resizeSession) {
+        return;
+    }
+
+    if (!payload || typeof payload.screenX !== 'number' || typeof payload.screenY !== 'number') {
+        return;
+    }
+
+    const constraints = getResizeConstraints();
+    const deltaX = Math.round(payload.screenX - resizeSession.startMouseX);
+    const deltaY = Math.round(payload.screenY - resizeSession.startMouseY);
+
+    if (resizeSession.edge === 'bottom-right') {
+        const nextWidth = clamp(resizeSession.startWidth + deltaX, constraints.minWidth, constraints.maxWidth);
+        const nextHeight = clamp(resizeSession.startHeight + deltaY, constraints.minHeight, constraints.maxHeight);
+        mainWindow.setBounds({
+            x: resizeSession.startWinX,
+            y: resizeSession.startWinY,
+            width: nextWidth,
+            height: nextHeight,
+        });
+    }
+});
+
+ipcMain.on('window:resize-end', () => {
+    resizeSession = null;
 });
 
 ipcMain.on('mood:debug-log', (_event, payload) => {

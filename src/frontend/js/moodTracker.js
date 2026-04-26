@@ -2,6 +2,7 @@ window.MoodTracker = (function () {
     const config = window.MoodAlgorithmConfig || {};
 
     const keyTimestamps = [];
+    const clickTimestamps = [];
     const backspaceTimestamps = [];
     const joyTimestamps = [];
     const listeners = [];
@@ -55,6 +56,9 @@ window.MoodTracker = (function () {
     let lastTrackedAt = 0;
     let lastTrackedKeycode = null;
     let lastTrackedKeyAt = 0;
+    let lastClickAt = 0;
+    let sameKeyRepeatCount = 0;
+    let sameKeyRepeatWindowStart = 0;
 
     // Hysteresis and state tracking to reduce mood flicker.
     let currentState = { mood: 'Neutral', apm: 0 };
@@ -65,6 +69,7 @@ window.MoodTracker = (function () {
     const recentMoodDecisions = [];
 
     let globalInputHooked = false;
+    let globalMouseHooked = false;
     let started = false;
     let lastDebugLogAt = 0;
     let logPathPrinted = false;
@@ -82,6 +87,12 @@ window.MoodTracker = (function () {
     const APM_SMOOTHING_NEW = config.apmSmoothingNew ?? 0.2;
     const APM_SOFT_CAP = config.apmSoftCap ?? 360;
     const MIN_RAW_APM_FOR_ERROR_RATE = config.minRawApmForErrorRate ?? 10;
+    const ACTIVITY_MIN_GAP_MS = config.activityMinGapMs ?? 24;
+    const SAME_KEY_REPEAT_MIN_GAP_MS = config.sameKeyRepeatMinGapMs ?? 170;
+    const SAME_KEY_REPEAT_WINDOW_MS = config.sameKeyRepeatWindowMs ?? 1200;
+    const MAX_SAME_KEY_REPEATS_PER_WINDOW = config.maxSameKeyRepeatsPerWindow ?? 4;
+    const CLICK_APM_WEIGHT = config.clickApmWeight ?? 0.7;
+    const CLICK_MIN_GAP_MS = config.clickMinGapMs ?? 60;
 
     const FRUSTRATION_TEXT_MIN_SCORE = config.frustrationTextMinScore ?? 3;
     const FRUSTRATION_TEXT_MIN_SCORE_WITH_ERRORS = config.frustrationTextMinScoreWithErrors ?? 2;
@@ -124,9 +135,11 @@ window.MoodTracker = (function () {
 
     function computeMetrics() {
         trimWindow(keyTimestamps, METRICS_WINDOW_MS);
+        trimWindow(clickTimestamps, METRICS_WINDOW_MS);
         trimWindow(backspaceTimestamps, METRICS_WINDOW_MS);
 
-        const rawApm = keyTimestamps.length;
+        const weightedClickCount = clickTimestamps.length * CLICK_APM_WEIGHT;
+        const rawApm = keyTimestamps.length + weightedClickCount;
 
         smoothedApm = smoothedApm === 0
             ? rawApm
@@ -134,11 +147,15 @@ window.MoodTracker = (function () {
 
         // Burst estimate from the most recent 2 seconds.
         const now = Date.now();
-        const burstCount = keyTimestamps.filter((ts) => ts >= now - BURST_WINDOW_MS).length;
+        const burstKeyCount = keyTimestamps.filter((ts) => ts >= now - BURST_WINDOW_MS).length;
+        const burstClickCount = clickTimestamps.filter((ts) => ts >= now - BURST_WINDOW_MS).length;
+        const burstCount = burstKeyCount + (burstClickCount * CLICK_APM_WEIGHT);
         const burstApm = Math.round((burstCount / BURST_WINDOW_MS) * 60000);
 
         // Baseline from 12s..2s ago to detect sudden acceleration.
-        const baselineCount = keyTimestamps.filter((ts) => ts >= now - BASELINE_WINDOW_MS && ts < now - BURST_WINDOW_MS).length;
+        const baselineKeyCount = keyTimestamps.filter((ts) => ts >= now - BASELINE_WINDOW_MS && ts < now - BURST_WINDOW_MS).length;
+        const baselineClickCount = clickTimestamps.filter((ts) => ts >= now - BASELINE_WINDOW_MS && ts < now - BURST_WINDOW_MS).length;
+        const baselineCount = baselineKeyCount + (baselineClickCount * CLICK_APM_WEIGHT);
         const baselineSpanMs = Math.max(BASELINE_WINDOW_MS - BURST_WINDOW_MS, 1);
         const baselineApm = Math.round((baselineCount / baselineSpanMs) * 60000);
         // Instability only counts sudden acceleration, not slowdown after activity ends.
@@ -149,8 +166,8 @@ window.MoodTracker = (function () {
         const normalizedApm = Math.min(Math.round(smoothedApm), APM_SOFT_CAP);
 
         let errorRate = 0;
-        if (rawApm > MIN_RAW_APM_FOR_ERROR_RATE) {
-            errorRate = (backspaceTimestamps.length / rawApm) * 100;
+        if (keyTimestamps.length > MIN_RAW_APM_FOR_ERROR_RATE) {
+            errorRate = (backspaceTimestamps.length / keyTimestamps.length) * 100;
         }
 
         return {
@@ -160,6 +177,8 @@ window.MoodTracker = (function () {
             baselineApm,
             instability,
             backspaceBurstCount,
+            keyCount: keyTimestamps.length,
+            clickCount: clickTimestamps.length,
         };
     }
 
@@ -533,12 +552,28 @@ window.MoodTracker = (function () {
         const now = typeof eventTime === 'number' ? eventTime : Date.now();
 
         // Filter noisy repeat events that inflate APM unrealistically.
-        if (now - lastTrackedAt < 24) {
+        if (now - lastTrackedAt < ACTIVITY_MIN_GAP_MS) {
             return;
         }
 
-        if (typeof keycode === 'number' && keycode === lastTrackedKeycode && now - lastTrackedKeyAt < 68) {
-            return;
+        if (typeof keycode === 'number' && keycode === lastTrackedKeycode) {
+            const repeatGap = now - lastTrackedKeyAt;
+            if (repeatGap < SAME_KEY_REPEAT_MIN_GAP_MS) {
+                return;
+            }
+
+            if (sameKeyRepeatWindowStart === 0 || now - sameKeyRepeatWindowStart > SAME_KEY_REPEAT_WINDOW_MS) {
+                sameKeyRepeatWindowStart = now;
+                sameKeyRepeatCount = 0;
+            }
+
+            sameKeyRepeatCount += 1;
+            if (sameKeyRepeatCount > MAX_SAME_KEY_REPEATS_PER_WINDOW) {
+                return;
+            }
+        } else {
+            sameKeyRepeatCount = 0;
+            sameKeyRepeatWindowStart = now;
         }
 
         keyTimestamps.push(now);
@@ -550,8 +585,22 @@ window.MoodTracker = (function () {
         appendTextToken(effectiveToken);
     }
 
+    function trackClickActivity(eventTime) {
+        const now = typeof eventTime === 'number' ? eventTime : Date.now();
+        if (now - lastClickAt < CLICK_MIN_GAP_MS) {
+            return;
+        }
+
+        clickTimestamps.push(now);
+        lastClickAt = now;
+    }
+
     function handleLocalKeydown(event) {
         if (globalInputHooked || NON_ACTIVITY_KEYS.has(event.key)) {
+            return;
+        }
+
+        if (event.repeat) {
             return;
         }
 
@@ -564,6 +613,22 @@ window.MoodTracker = (function () {
         trackActivity(null, token, Date.now());
     }
 
+    function handleLocalPointerDown(event) {
+        if (globalMouseHooked) {
+            return;
+        }
+
+        if (!event || event.isTrusted === false) {
+            return;
+        }
+
+        if (typeof event.button === 'number' && event.button > 2) {
+            return;
+        }
+
+        trackClickActivity(Date.now());
+    }
+
     function start() {
         if (started) {
             return;
@@ -571,11 +636,19 @@ window.MoodTracker = (function () {
         started = true;
 
         document.addEventListener('keydown', handleLocalKeydown);
+        document.addEventListener('mousedown', handleLocalPointerDown, true);
 
         if (window.api && typeof window.api.onGlobalKeyActivity === 'function') {
             window.api.onGlobalKeyActivity((data) => {
                 globalInputHooked = true;
                 trackActivity(data?.keycode, data?.token, data?.when);
+            });
+        }
+
+        if (window.api && typeof window.api.onGlobalMouseActivity === 'function') {
+            window.api.onGlobalMouseActivity((data) => {
+                globalMouseHooked = true;
+                trackClickActivity(data?.when);
             });
         }
 
@@ -597,6 +670,8 @@ window.MoodTracker = (function () {
             debugLog({
                 event: 'heartbeat',
                 apm,
+                keyCount: metrics.keyCount,
+                clickCount: metrics.clickCount,
                 errorRate: Number(metrics.errorRate.toFixed(2)),
                 burstApm: metrics.burstApm,
                 baselineApm: metrics.baselineApm,

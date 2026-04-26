@@ -44,23 +44,38 @@ window.SpriteEngine = (function () {
         }
     };
 
-    let interval = null;
+    const STATIC_FRAME_MS = 420;
+    const players = new WeakMap();
 
-    function play(img, character, mood, speed = 400) {
+    function play(img, character, mood, _speed = STATIC_FRAME_MS) {
         if (!img) return;
         const frames = CHARACTERS?.[character]?.[mood];
         if (!frames || frames.length === 0) return;
 
+        const nextSignature = `${character}:${mood}`;
+        const existing = players.get(img);
+        if (existing && existing.signature === nextSignature) {
+            return;
+        }
+
+        if (existing && existing.intervalId) {
+            clearInterval(existing.intervalId);
+        }
+
         let i = 0;
-        clearInterval(interval);
-        
+
         // Immediate first frame
         img.src = frames[0];
 
-        interval = setInterval(() => {
+        const intervalId = setInterval(() => {
             i = (i + 1) % frames.length;
             img.src = frames[i];
-        }, speed);
+        }, STATIC_FRAME_MS);
+
+        players.set(img, {
+            signature: nextSignature,
+            intervalId,
+        });
     }
 
     return { play, preload: () => {} };

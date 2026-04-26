@@ -86,9 +86,52 @@
         </div>
     </div>
 
+    <button id="window-resize-grip" class="window-resize-grip" aria-label="Resize window" title="Drag to resize"></button>
+
     <script src="../js/spriteEngine.js"></script>
     <script src="../js/router.js"></script>
     <script src="../js/themeManager.js"></script>
+    <script>
+        (function () {
+            const resizeGrip = document.getElementById('window-resize-grip');
+            if (!resizeGrip || !window.api) {
+                return;
+            }
+
+            let isResizing = false;
+
+            resizeGrip.addEventListener('mousedown', (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                isResizing = true;
+
+                if (typeof window.api.beginWindowResize === 'function') {
+                    window.api.beginWindowResize(event.screenX, event.screenY, 'bottom-right');
+                }
+            });
+
+            window.addEventListener('mousemove', (event) => {
+                if (!isResizing) {
+                    return;
+                }
+
+                if (typeof window.api.moveWindowResize === 'function') {
+                    window.api.moveWindowResize(event.screenX, event.screenY);
+                }
+            });
+
+            window.addEventListener('mouseup', () => {
+                if (!isResizing) {
+                    return;
+                }
+
+                isResizing = false;
+                if (typeof window.api.endWindowResize === 'function') {
+                    window.api.endWindowResize();
+                }
+            });
+        })();
+    </script>
 </body>
 
 </html>

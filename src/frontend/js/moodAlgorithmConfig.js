@@ -55,6 +55,16 @@ window.MoodAlgorithmConfig = {
     apmSmoothingNew: 0.2,
     apmSoftCap: 360,
 
+    // Input filtering to prevent held-key inflation.
+    activityMinGapMs: 24,
+    sameKeyRepeatMinGapMs: 170,
+    sameKeyRepeatWindowMs: 1200,
+    maxSameKeyRepeatsPerWindow: 4,
+
+    // Include mouse clicks in APM with adjustable weight.
+    clickApmWeight: 0.7,
+    clickMinGapMs: 60,
+
     // Error rate only becomes meaningful after this many keys.
     minRawApmForErrorRate: 10,
 
