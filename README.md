@@ -73,6 +73,7 @@ This repository is intended to support:
 4. Run: npm start
 
 For collaborator-specific setup, see SETUP.md.
+For user-tester setup, see TESTER_SETUP.md.
 
 ## End-User Install
 

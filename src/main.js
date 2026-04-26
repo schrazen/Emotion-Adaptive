@@ -30,6 +30,8 @@ let dragSession = null;
 let resizeSession = null;
 let selectedCharacter = 'pikachu';
 let globalHookStarted = false;
+let mainModeSize = { width: 380, height: 480 };
+let widgetModeSize = { width: 220, height: 220 };
 
 const moodLogDir = path.join(__dirname, 'backend', 'database', 'logs');
 const moodLogPath = path.join(moodLogDir, 'mood-debug.log');
@@ -68,13 +70,19 @@ function applyWindowMode() {
         return;
     }
 
+    const constraints = getResizeConstraints();
+
     if (widgetOnlyMode) {
-        mainWindow.setSize(220, 220);
+        const nextWidth = clamp(widgetModeSize.width, constraints.minWidth, constraints.maxWidth);
+        const nextHeight = clamp(widgetModeSize.height, constraints.minHeight, constraints.maxHeight);
+        mainWindow.setSize(nextWidth, nextHeight);
         mainWindow.loadFile(path.join(__dirname, 'frontend/pages/widget.html'));
         return;
     }
 
-    mainWindow.setSize(380, 480);
+    const nextWidth = clamp(mainModeSize.width, constraints.minWidth, constraints.maxWidth);
+    const nextHeight = clamp(mainModeSize.height, constraints.minHeight, constraints.maxHeight);
+    mainWindow.setSize(nextWidth, nextHeight);
     mainWindow.loadFile(path.join(__dirname, 'frontend/pages/main.html'));
 }
 
@@ -115,8 +123,8 @@ function centerMainWindow() {
 
 function createWindow() {
     mainWindow = new BrowserWindow({
-        width: 380,
-        height: 480,
+        width: mainModeSize.width,
+        height: mainModeSize.height,
         frame: false,
         alwaysOnTop: true,
         resizable: false,
@@ -333,6 +341,15 @@ ipcMain.on('window:resize-move', (_event, payload) => {
 });
 
 ipcMain.on('window:resize-end', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+        const [currentWidth, currentHeight] = mainWindow.getSize();
+        if (widgetOnlyMode) {
+            widgetModeSize = { width: currentWidth, height: currentHeight };
+        } else {
+            mainModeSize = { width: currentWidth, height: currentHeight };
+        }
+    }
+
     resizeSession = null;
 });
 
