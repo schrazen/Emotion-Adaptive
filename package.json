@@ -8,7 +8,7 @@
     "uiohook-napi": "^1.5.5"
   },
   "name": "emotion-adaptive",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "",
   "main": "src/main.js",
   "scripts": {
@@ -44,7 +44,8 @@
       "target": [
         "nsis",
         "portable"
-      ]
+      ],
+      "icon": "src/frontend/assets/icon.ico"
     },
     "nsis": {
       "oneClick": false,

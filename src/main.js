@@ -120,11 +120,12 @@ function centerMainWindow() {
     const centerY = Math.round(workArea.y + (workArea.height - bounds.height) / 2);
     mainWindow.setPosition(centerX, centerY);
 }
-
+// icon is the icon.ico
 function createWindow() {
     mainWindow = new BrowserWindow({
         width: mainModeSize.width,
         height: mainModeSize.height,
+        icon: path.join(__dirname, 'frontend', 'assets', 'icon.ico'),
         frame: false,
         alwaysOnTop: true,
         resizable: false,
@@ -377,4 +378,3 @@ app.on('will-quit', () => {
         // Ignore cleanup errors during app shutdown.
     }
 });
-
