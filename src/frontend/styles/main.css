@@ -52,13 +52,13 @@
     --btn-hover: #ffeb3b;
 }
 [data-theme="dark"][data-emotion="happy"] {
-    --bg-main: #1f1a07;
-    --text-primary: #fff7d0;
-    --text-secondary: #dccf96;
-    --card-bg: #2f2608;
-    --card-border: #4f4114;
-    --accent-color: #f5c518;
-    --accent-color-hover: #e0b20e;
+    --bg-main: #121212;
+    --text-primary: #fffdf5;
+    --text-secondary: #e6dcc2;
+    --card-bg: #1e1e1e;
+    --card-border: #383838;
+    --accent-color: #ffd54a;
+    --accent-color-hover: #ffe27a;
 }
 
 /* --- Neutral --- */
