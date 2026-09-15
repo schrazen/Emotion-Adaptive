@@ -26,15 +26,20 @@ window.MoodAlgorithmConfig = {
     frustrationTextBoost: 1.4,
     instabilityBoost: 0.8,
     errorRateBoost: 0.08,
-    backspaceBurstBoost: 0.35,
+    // TIER 1 TUNING: Reduced from 0.35 to 0.25 (backspace is less critical for mood)
+    backspaceBurstBoost: 0.25,
 
     // Instability is derived from the gap between short burst and baseline typing speed.
-    instabilityThreshold: 220,
+    // TIER 1 TUNING: Increased threshold from 220 to 280 (need more dramatic acceleration for anger)
+    instabilityThreshold: 280,
     instabilityScale: 90,
 
     // Backspace burst looks at recent corrections, not just overall error rate.
+    // TIER 1 TUNING: Increased from 4 to 6 to reduce false positives from single word corrections
+    // TIER 1 TUNING: Reduced boost from 0.9 to 0.25 to lower anger contribution
     backspaceBurstWindowMs: 2000,
-    backspaceBurstThreshold: 4,
+    backspaceBurstThreshold: 6,
+    backspaceBurstThreshold_forceMin: 3,  // Absolute minimum for extreme cases
 
     // Strict 3-state model: Angry, Happy, Neutral.
 
@@ -97,17 +102,17 @@ window.MoodAlgorithmConfig = {
         {
             name: 'mash-home-row',
             weight: 2,
-            sequences: ['asdfg', 'sdfgh', 'dfghj', 'fghjk', 'ghjkl', 'lkjhg', 'kjhgf', 'jhgfd', 'hgfds', 'gfdsa']
+            sequences: ['asdfg', 'sdfgh', 'dfghj', 'fghjk', 'ghjkl', 'lkjhg', 'kjhgf', 'jhgfd', 'hgfds', 'gfdsa', '!!!' , '???', '...']
         },
         {
             name: 'mash-top-row',
             weight: 2,
-            sequences: ['qwert', 'werty', 'ertyu', 'rtyui', 'tyuio', 'yuiop', 'poiuy', 'oiuyt', 'iuytr', 'uytre', 'ytrew', 'trewq']
+            sequences: ['qwert', 'werty', 'ertyu', 'rtyui', 'tyuio', 'yuiop', 'poiuy', 'oiuyt', 'iuytr', 'uytre', 'ytrew', 'trewq', '!!!' , '???', '...']
         },
         {
             name: 'mash-bottom-row',
             weight: 2,
-            sequences: ['zxcvb', 'xcvbn', 'cvbnm', 'mnbvc', 'nbvcx', 'bvcxz']
+            sequences: ['zxcvb', 'xcvbn', 'cvbnm', 'mnbvc', 'nbvcx', 'bvcxz', '!!!' , '???', '...']
         }
     ],
 
@@ -148,4 +153,33 @@ window.MoodAlgorithmConfig = {
 
     // Keep a rolling history of the latest mood decisions for debugging and learning.
     moodHistorySize: 50,
+
+    // ===== ACCURACY TRACKING CONFIG =====
+    // Enable detailed signal logging for accuracy analysis
+    enableDetailedSignalLogging: true,
+    
+    // Circadian adjustment: apply different thresholds based on time of day
+    // TIER 1 TUNING: Enable late-night focus work adjustment
+    enableCircadianAdjustment: true,
+    midnightHourStart: 22,  // 10 PM
+    midnightHourEnd: 6,     // 6 AM
+    midnightFrustrationBoostMultiplier: 0.7,  // Reduce frustration weight by 30% late night
+    
+    // Context detection: adjust thresholds based on active application
+    enableContextDetection: true,
+    contextSoftwareMaps: {
+        'coding': ['VSCode', 'Visual Studio', 'Sublime', 'IntelliJ', 'PyCharm', 'WebStorm'],
+        'writing': ['Gmail', 'Outlook', 'Word', 'Notes', 'Notepad'],
+        'debugging': ['DevTools', 'Debugger', 'Chrome', 'Firefox']
+    },
+    contextAdjustments: {
+        'coding': { backspaceBurstThreshold: 7, errorRateThreshold: 20 },
+        'writing': { backspaceBurstThreshold: 4, errorRateThreshold: 12 },
+        'debugging': { backspaceBurstThreshold: 8, errorRateThreshold: 22 }
+    },
+    
+    // Session tracking for fatigue detection
+    enableFatigueModeling: true,
+    fatigueLongSessionHours: 4,
+    fatigueApmThresholdMultiplier: 1.2,  // Need 20% higher APM to trigger angry when fatigued
 };

@@ -156,6 +156,102 @@ class MoodLogRepository {
             });
         });
     }
+
+    insertMoodSignalLog(signalData) {
+        return new Promise((resolve, reject) => {
+            const query = `INSERT INTO mood_signal_logs (
+                mood_log_id,
+                error_rate,
+                burst_apm,
+                baseline_apm,
+                instability,
+                backspace_burst_count,
+                frustration_text_score,
+                frustration_text_matches,
+                joy_active,
+                is_frustrated_by_text,
+                is_frustrated_by_speed,
+                anger_level,
+                joy_level,
+                context_app,
+                session_duration_minutes,
+                hour_of_day,
+                is_circadian_adjusted,
+                signals_json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+            
+            db.run(query, [
+                signalData.moodLogId || null,
+                signalData.errorRate || 0,
+                signalData.burstApm || 0,
+                signalData.baselineApm || 0,
+                signalData.instability || 0,
+                signalData.backspaceBurstCount || 0,
+                signalData.frustrationTextScore || 0,
+                signalData.frustrationTextMatches ? JSON.stringify(signalData.frustrationTextMatches) : null,
+                signalData.joyActive ? 1 : 0,
+                signalData.isFrustratedByText ? 1 : 0,
+                signalData.isFrustratedBySpeed ? 1 : 0,
+                signalData.angerLevel || 0,
+                signalData.joyLevel || 0,
+                signalData.contextApp || null,
+                signalData.sessionDurationMinutes || 0,
+                signalData.hourOfDay || null,
+                signalData.isCircadianAdjusted ? 1 : 0,
+                signalData.signalsJson ? JSON.stringify(signalData.signalsJson) : null
+            ], function(err) {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve({ id: this.lastID, ...signalData });
+                }
+            });
+        });
+    }
+
+    addUserFeedback(moodSignalLogId, feedback) {
+        return new Promise((resolve, reject) => {
+            const query = `UPDATE mood_signal_logs 
+                SET user_feedback = ?, feedback_timestamp = CURRENT_TIMESTAMP 
+                WHERE id = ?`;
+            
+            db.run(query, [feedback, moodSignalLogId], function(err) {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve({ updated: this.changes > 0 });
+                }
+            });
+        });
+    }
+
+    getAccuracyAnalysis(days = 7) {
+        return new Promise((resolve, reject) => {
+            const query = `
+                SELECT 
+                    computed_mood,
+                    user_feedback,
+                    COUNT(*) as count,
+                    AVG(CAST(error_rate AS FLOAT)) as avg_error_rate,
+                    AVG(CAST(apm AS INTEGER)) as avg_apm,
+                    AVG(CAST(anger_level AS FLOAT)) as avg_anger_level,
+                    AVG(CAST(frustration_text_score AS FLOAT)) as avg_frustration_score
+                FROM mood_signal_logs msl
+                JOIN mood_logs ml ON msl.mood_log_id = ml.id
+                WHERE datetime(msl.timestamp) >= datetime('now', '-' || ? || ' days')
+                GROUP BY computed_mood, user_feedback
+                ORDER BY computed_mood, user_feedback
+            `;
+            
+            db.all(query, [days], (err, rows) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(rows || []);
+                }
+            });
+        });
+    }
 }
 
 module.exports = new MoodLogRepository();

@@ -60,6 +60,20 @@ window.MoodTracker = (function () {
     let sameKeyRepeatCount = 0;
     let sameKeyRepeatWindowStart = 0;
 
+    // Session tracking for fatigue detection
+    let sessionStartTime = Date.now();
+    let lastActivityAt = Date.now();
+    const SESSION_INACTIVITY_RESET_MS = 30000;  // 30 seconds of inactivity resets session
+
+    // Context detection
+    let currentContextApp = null;
+    let lastContextCheckAt = 0;
+    const CONTEXT_CHECK_INTERVAL_MS = 5000;  // Check every 5 seconds
+
+    // Tracking for accuracy analysis
+    let lastMoodSignalLogId = null;
+    const ENABLE_DETAILED_LOGGING = config.enableDetailedSignalLogging ?? true;
+
     // Hysteresis and state tracking to reduce mood flicker.
     let currentState = { mood: 'Neutral', apm: 0 };
     let lastMoodChangeAt = 0;
@@ -123,6 +137,127 @@ window.MoodTracker = (function () {
 
         if (window.api && typeof window.api.logMoodDebug === 'function') {
             window.api.logMoodDebug(payload);
+        }
+    }
+
+    async function updateContextApp() {
+        const now = Date.now();
+        if (now - lastContextCheckAt < CONTEXT_CHECK_INTERVAL_MS) {
+            return;  // Don't check too frequently
+        }
+
+        lastContextCheckAt = now;
+
+        try {
+            if (window.api && typeof window.api.getActiveWindowTitle === 'function') {
+                const title = await window.api.getActiveWindowTitle();
+                
+                // Detect context from window title
+                const contextMaps = config.contextSoftwareMaps || {};
+                for (const [context, apps] of Object.entries(contextMaps)) {
+                    if (apps.some(app => title.includes(app))) {
+                        currentContextApp = context;
+                        return;
+                    }
+                }
+                
+                currentContextApp = 'other';
+            }
+        } catch (error) {
+            // Silently fail if context detection not available
+            currentContextApp = null;
+        }
+    }
+
+    function getCircadianAdjustments() {
+        if (!config.enableCircadianAdjustment) {
+            return { multiplier: 1.0, isNighttime: false };
+        }
+
+        const now = new Date();
+        const hour = now.getHours();
+        const startHour = config.midnightHourStart ?? 22;
+        const endHour = config.midnightHourEnd ?? 6;
+        
+        const isNighttime = hour >= startHour || hour < endHour;
+        const multiplier = isNighttime ? (config.midnightFrustrationBoostMultiplier ?? 0.7) : 1.0;
+
+        return { multiplier, isNighttime };
+    }
+
+    function getFatigueAdjustments() {
+        if (!config.enableFatigueModeling) {
+            return { apmMultiplier: 1.0, fatigueHours: 0 };
+        }
+
+        const sessionDurationMs = Date.now() - sessionStartTime;
+        const fatigueHours = sessionDurationMs / (1000 * 3600);
+        const longSessionHours = config.fatigueLongSessionHours ?? 4;
+
+        if (fatigueHours > longSessionHours) {
+            const apmMultiplier = config.fatigueApmThresholdMultiplier ?? 1.2;
+            return { apmMultiplier, fatigueHours };
+        }
+
+        return { apmMultiplier: 1.0, fatigueHours };
+    }
+
+    function getContextAdjustments() {
+        if (!config.enableContextDetection || !currentContextApp) {
+            return {};
+        }
+
+        const adjustments = config.contextAdjustments || {};
+        return adjustments[currentContextApp] || {};
+    }
+
+    async function saveDetailedSignals(moodLogId, metrics, decision) {
+        if (!ENABLE_DETAILED_LOGGING || !window.api || !window.api.saveDetailedSignals) {
+            return;
+        }
+
+        try {
+            const now = Date.now();
+            const hourOfDay = new Date().getHours();
+            const sessionDurationMs = now - sessionStartTime;
+            const sessionDurationMinutes = sessionDurationMs / (1000 * 60);
+            const circadian = getCircadianAdjustments();
+            const fatigue = getFatigueAdjustments();
+
+            const signalData = {
+                moodLogId,
+                errorRate: metrics.errorRate,
+                burstApm: metrics.burstApm,
+                baselineApm: metrics.baselineApm,
+                instability: metrics.instability,
+                backspaceBurstCount: metrics.backspaceBurstCount,
+                frustrationTextScore: decision.signals?.frustrationTextScore || 0,
+                frustrationTextMatches: decision.signals?.frustrationTextMatches || [],
+                joyActive: decision.signals?.joyActive || false,
+                isFrustratedByText: decision.signals?.isFrustratedByText || false,
+                isFrustratedBySpeed: decision.signals?.isFrustratedBySpeed || false,
+                angerLevel: decision.signals?.angerLevel || 0,
+                joyLevel: decision.signals?.joyLevel || 0,
+                contextApp: currentContextApp,
+                sessionDurationMinutes,
+                hourOfDay,
+                isCircadianAdjusted: circadian.isNighttime,
+                signalsJson: {
+                    ...decision.signals,
+                    circadian,
+                    fatigue,
+                    contextAdjustments: getContextAdjustments()
+                }
+            };
+
+            const result = await window.api.saveDetailedSignals(signalData);
+            if (result && result.success && result.result && result.result.id) {
+                lastMoodSignalLogId = result.result.id;
+            } else if (result && result.id) {
+                lastMoodSignalLogId = result.id;
+            }
+        } catch (error) {
+            console.warn('Failed to save detailed signals:', error);
         }
     }
 
@@ -551,6 +686,20 @@ window.MoodTracker = (function () {
     function trackActivity(keycode, token, eventTime) {
         const now = typeof eventTime === 'number' ? eventTime : Date.now();
 
+        // Reset session if there's been a long inactivity gap
+        if (now - lastActivityAt > SESSION_INACTIVITY_RESET_MS) {
+            sessionStartTime = now;
+            angerLevel = 0;
+            joyLevel = 0;
+            debugLog({
+                event: 'session-reset',
+                inactivityDurationMs: now - lastActivityAt,
+                at: now,
+            }, true);
+        }
+
+        lastActivityAt = now;
+
         // Filter noisy repeat events that inflate APM unrealistically.
         if (now - lastTrackedAt < ACTIVITY_MIN_GAP_MS) {
             return;
@@ -662,10 +811,15 @@ window.MoodTracker = (function () {
         }
 
         setInterval(() => {
+            updateContextApp();  // Asynchronously update context every few seconds
+
             const metrics = computeMetrics();
             const decision = moodFromSignals(metrics.apm, metrics.errorRate, metrics.burstApm, metrics.baselineApm, metrics);
             const mood = decision.mood;
             const apm = metrics.apm;
+
+            const circadian = getCircadianAdjustments();
+            const fatigue = getFatigueAdjustments();
 
             debugLog({
                 event: 'heartbeat',
@@ -679,6 +833,9 @@ window.MoodTracker = (function () {
                 nextMood: mood,
                 changed: decision.changed,
                 blockedByCooldown: decision.blockedByCooldown,
+                circadian,
+                fatigue,
+                contextApp: currentContextApp,
                 signals: decision.signals,
             });
 
@@ -694,21 +851,30 @@ window.MoodTracker = (function () {
             const decision = moodFromSignals(metrics.apm, metrics.errorRate, metrics.burstApm, metrics.baselineApm, metrics);
             const mood = decision.mood;
             const apm = metrics.apm;
+            
             try {
-                await window.api.saveMoodSnapshot({
+                const snapshotResult = await window.api.saveMoodSnapshot({
                     apm,
                     computedMood: mood,
                     source: 'widget-keydown'
                 });
 
+                const moodLogId = snapshotResult?.result?.id || snapshotResult?.id;
+
                 debugLog({
                     event: 'snapshot-saved',
+                    moodLogId,
                     apm,
                     mood,
                     errorRate: Number(metrics.errorRate.toFixed(2)),
                     burstApm: metrics.burstApm,
                     baselineApm: metrics.baselineApm,
                 }, true);
+
+                // Save detailed signals for accuracy tracking
+                if (moodLogId) {
+                    await saveDetailedSignals(moodLogId, metrics, decision);
+                }
             } catch (_error) {
                 // Ignore save errors to keep tracking alive.
             }

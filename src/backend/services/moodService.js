@@ -12,6 +12,33 @@ class MoodService {
         return moodLogRepo.insertMoodLog(payload);
     }
 
+    async saveDetailedSignals(data) {
+        try {
+            return await moodLogRepo.insertMoodSignalLog(data);
+        } catch (error) {
+            console.error('Error saving detailed signals:', error);
+            throw error;
+        }
+    }
+
+    async addUserMoodFeedback(signalLogId, feedback) {
+        try {
+            return await moodLogRepo.addUserFeedback(signalLogId, feedback);
+        } catch (error) {
+            console.error('Error adding feedback:', error);
+            throw error;
+        }
+    }
+
+    async getAccuracyReport(days = 7) {
+        try {
+            return await moodLogRepo.getAccuracyAnalysis(days);
+        } catch (error) {
+            console.error('Error generating accuracy report:', error);
+            throw error;
+        }
+    }
+
     async getLatestMood() {
         return moodLogRepo.getLatestMood();
     }

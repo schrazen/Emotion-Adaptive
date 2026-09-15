@@ -20,6 +20,44 @@ class MoodController {
         }
     }
 
+    async handleSaveDetailedSignals(_event, signalData) {
+        try {
+            if (!signalData) {
+                return { success: false, message: 'No signal data provided.' };
+            }
+
+            const result = await moodService.saveDetailedSignals(signalData);
+            return { success: true, result };
+        } catch (error) {
+            console.error('Save detailed signals controller error', error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    async handleAddMoodFeedback(_event, feedbackData) {
+        try {
+            if (!feedbackData || !feedbackData.signalLogId || !feedbackData.feedback) {
+                return { success: false, message: 'Invalid feedback data.' };
+            }
+
+            const result = await moodService.addUserMoodFeedback(feedbackData.signalLogId, feedbackData.feedback);
+            return { success: true, result };
+        } catch (error) {
+            console.error('Add feedback controller error', error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    async handleGetAccuracyReport(_event, days = 7) {
+        try {
+            const report = await moodService.getAccuracyReport(days);
+            return { success: true, report };
+        } catch (error) {
+            console.error('Get accuracy report error', error);
+            return { success: false, error: error.message };
+        }
+    }
+
     async handleGetMood() {
         try {
             const latest = await moodService.getLatestMood();

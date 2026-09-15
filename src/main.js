@@ -225,6 +225,22 @@ ipcMain.on('window:close', () => {
     mainWindow.close();
 });
 
+// Get active window title for context detection (Windows only)
+ipcMain.handle('window:get-active-title', async () => {
+    try {
+        // Try to get active window using getActiveWindow function from OS
+        // For now, return the app's own window title as fallback
+        // In production, you'd install 'active-win' package: npm install active-win
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            return mainWindow.getTitle() || 'Emotion-Adaptive';
+        }
+        return 'Emotion-Adaptive';
+    } catch (error) {
+        console.warn('Failed to get active window title:', error.message);
+        return 'Unknown';
+    }
+});
+
 // SECURE FILE LOADER
 ipcMain.handle('page:load', async (event, pageName) => {
     try {
