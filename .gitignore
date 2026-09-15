@@ -1,25 +1,48 @@
+# Dependencies
 node_modules/
+
+# Logs and runtime telemetry
 *.log
+logs/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
-.env
-.DS_Store
-Thumbs.db
+src/backend/database/logs/
+src/backend/database/electron-session/
 
+# Environment and secrets
+.env
+.env.*
+*.env
+
+# SQLite local databases
 *.db
+*.db-journal
+*.db-wal
+*.db-shm
 *.sqlite
 *.sqlite3
 
+# Packaging and build outputs
 dist/
 build/
+release/
 coverage/
 .cache/
 
-SETUP_AND_REQUIREMENTS.md
-PROJECT_GUIDE.md
-nyenyenye.md
-assdasdasda.md
-something.md
-src/backend/database/electron-session/
+# Operating System & IDE files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Temporary & backup files
+*.tmp
+*.bak
+*.bak.*

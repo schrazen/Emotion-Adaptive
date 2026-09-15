@@ -1,94 +1,172 @@
 # Emotion-Adaptive UI System (EAUIS)
 
-An early-stage desktop widget system that adapts its interface based on user interaction signals such as typing activity and key patterns.
+An adaptive desktop widget system that dynamically adjusts its interface, theme, and character expressions based on real-time user interaction signals (typing speed, error frequency, and keyboard patterns).
+
+---
 
 ## Overview
 
-Emotion-Adaptive UI System (EAUIS) is a capstone-oriented project focused on adaptive interfaces.
-The system is designed to:
-- infer a simple mood state from measurable behavior
-- update the UI theme and character expression in real time
-- store mood and survey data for analysis and reporting
+Emotion-Adaptive UI System (EAUIS) is an intelligent desktop companion designed for adaptive user experiences and human-computer interaction (HCI) evaluation.
 
-## Planned Product Experience
+The system:
+- **Captures interaction metrics**: Non-intrusively monitors typing cadence (Actions Per Minute / APM), backspace burst frequency, and sentiment signals.
+- **Infers emotional states**: Uses algorithmic heuristic modeling (including circadian and fatigue adjustments) to categorize mood into **Happy**, **Neutral**, or **Stressed**.
+- **Adapts in real-time**: Dynamically updates the floating desktop widget's visual expression, color palette, and layout.
+- **Stores evaluation data**: Persists mood history, signal logs, and usability survey responses locally in SQLite for academic analysis and reporting.
 
-- A small floating widget that can be dragged anywhere on screen
-- A cute emotion indicator that changes state (Happy, Neutral, Stressed)
-- A details interface for settings, logs, and evaluation inputs
-- Local persistence for mood logs and usability survey results
+---
 
-## Core Idea
+## Core Architecture
 
-The project uses a 3-layer concept:
-- Sensors: capture interaction signals (keystrokes, timing, patterns)
-- Brain: compute mood state using rules such as APM and pattern matching
-- Face: reflect mood through color, typography, layout, and animation
+The system is designed around a **3-Layer Concept** backed by a **Controller-Service-Repository** pattern:
 
-## Architecture
+```
+[Sensors] (uiohook-napi & DOM input tracking)
+   │
+   ▼
+[Brain]   (IPC Bridge -> Controller -> Service -> SQLite Repository)
+   │
+   ▼
+[Face]    (Floating Widget, Character Sprites, Dynamic CSS Theming)
+```
 
-The codebase follows a Controller-Service-Repository style structure:
-- Controller: input handling and request validation
-- Service: business logic and mood computation
-- Repository: data access and SQL operations
+1. **Sensors (Input Layer)**: Captures keyboard and mouse events globally (`uiohook-napi`) and locally within the widget window.
+2. **Brain (Logic & Storage Layer)**:
+   - Evaluates APM, instability, error rate, and emotional patterns.
+   - Applies circadian weighting (late-night adjustments) and session duration tracking.
+   - Saves mood snapshots and signal telemetry to SQLite.
+3. **Face (Presentation Layer)**:
+   - A draggable, resizable floating desktop widget featuring animated characters (Kirby, BMO, Pikachu).
+   - A full settings and history dashboard with dark/light mode and auto-theme toggles.
 
-Current structure includes:
-- backend modules for controller/service/repository flow
-- preload bridge for safe frontend-backend communication
-- SQLite setup for local persistence
+---
 
 ## Tech Stack
 
-- Electron (desktop shell)
-- HTML, CSS, JavaScript (interface)
-- Node.js (runtime)
-- SQLite (local database)
+- **Runtime & Desktop Shell**: [Electron](https://www.electronjs.org/) (v41+), [Node.js](https://nodejs.org/)
+- **UI & Frontend**: Vanilla HTML5, Modern CSS3, JavaScript (ES6+), Boxicons
+- **Database & Persistence**: [SQLite3](https://www.sqlite.org/) (local database with foreign key support)
+- **Input Hooking**: `uiohook-napi` (cross-platform global keyboard & mouse activity tracking)
+- **Packaging**: `electron-builder` (NSIS installer & portable Windows executable)
 
-## Project Status
+---
 
-Early development / foundation stage.
+## Getting Started (Setup Guide)
 
-Implemented:
-- initial backend scaffolding
-- survey persistence flow (controller -> service -> repository -> SQLite)
-- IPC bridge and backend route foundation
+### Prerequisites
+- **Node.js**: Install the latest **LTS** version of [Node.js](https://nodejs.org/) (includes `npm`).
+- **Operating System**: Windows 10 or 11 (recommended for global input hooking and native shortcuts).
+- **Code Editor**: VS Code (or any preferred editor).
 
-In progress / next:
-- complete Electron entry and window lifecycle
-- implement mood engine and input tracker
-- build floating widget UI and details interface
-- complete reporting-oriented data views
+Verify your environment:
+```powershell
+node -v
+npm -v
+```
 
-## Repository Goals
+### Installation & Development
 
-This repository is intended to support:
-- capstone implementation
-- reproducible setup for collaborators
-- clear engineering structure for review and defense
+1. **Clone the repository**:
+   ```powershell
+   git clone https://github.com/schrazen/Emotion-Adaptive.git
+   cd Emotion-Adaptive
+   ```
 
-## Quick Start
+2. **Install dependencies**:
+   ```powershell
+   npm install
+   ```
+   *(Note: This builds native dependencies like `sqlite3` and `uiohook-napi` for your local Node/Electron environment).*
 
-1. Install Node.js LTS.
-2. Open the repository in VS Code.
-3. Run: npm install
-4. Run: npm start
+3. **Launch the application in development mode**:
+   ```powershell
+   npm start
+   ```
 
-For collaborator-specific setup, see SETUP.md.
-For user-tester setup, see TESTER_SETUP.md.
+### Collaborator Notes
+- Always commit changes to `package.json` and `package-lock.json` together.
+- Never commit `node_modules/`, local database files (`*.db`, `*.sqlite`), or runtime logs (`*.log`).
+- Keep the main window and floating widget communication secure through the Electron preload context bridge (`src/preload/contextBridge.js`).
 
-## End-User Install
+---
 
-Users do not need Node.js, npm, or Electron installed if you ship the packaged build from GitHub Releases.
+## Testing & Quality Checklist
 
-Build a Windows installer or portable app:
+For collaborators and user-testers evaluating builds:
 
-1. Run: npm install
-2. Run: npm run dist:win
-3. Or run: npm run dist:portable
-4. Upload the files from the release folder to GitHub Releases
+### First-Run Test Steps
+1. **Launch**: Verify the application opens to the main view without errors.
+2. **Settings**:
+   - Toggle **Auto-Theme** ON / OFF.
+   - Toggle **Dark Mode** ON / OFF and verify color contrast.
+   - Switch active companion characters (Kirby / BMO / Pikachu).
+3. **Widget Mode**:
+   - Switch to **Character-only Widget Mode**.
+   - Drag the floating widget across the screen.
+   - Resize using the bottom-right grip.
+   - Double-click the widget to return to the full application window.
+4. **Mood Tracking**:
+   - Type in other applications (coding, typing test, browsing) to verify APM and mood updates.
 
-Install from command line using the latest GitHub release:
+### Tester Feedback Template
+```markdown
+- App launched successfully: [Yes / No]
+- Build type: [Dev / Installer / Portable]
+- Theme switching: [Pass / Issue]
+- Dark mode: [Pass / Issue]
+- Widget drag & resize: [Pass / Issue]
+- Return to full app: [Pass / Issue]
+- Observed issues or errors: [None / Describe here]
+```
 
-1. Open PowerShell
-2. Run: .\scripts\install.ps1
+---
 
-The script downloads the latest portable release from GitHub and unpacks it locally.
+## Packaging & Production Builds
+
+To package the application for end-users who do not have Node.js installed:
+
+```powershell
+# Build Windows NSIS Installer:
+npm run dist:win
+
+# Build Windows Standalone Portable Executable:
+npm run dist:portable
+```
+
+Packaged outputs will be created in the `release/` directory (which is automatically ignored by git).
+
+### One-Click Portable Download Script
+End-users can run this PowerShell script to download the latest portable release directly from GitHub:
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\install.ps1
+```
+
+---
+
+## Project Structure
+
+```
+Emotion-Adaptive/
+├── .github/workflows/         # CI/CD workflows for automated Windows releases
+├── release/                   # Build output directory (git-ignored)
+├── scripts/
+│   └── install.ps1            # Release downloader script
+├── src/
+│   ├── backend/
+│   │   ├── controllers/       # Request routing & validation
+│   │   ├── database/          # SQLite database schema & migrations
+│   │   ├── repositories/      # SQL database operations
+│   │   ├── router/            # IPC routing handlers
+│   │   └── services/          # Business logic & emotion algorithms
+│   ├── frontend/
+│   │   ├── assets/            # Sprites, icons, and Boxicons assets
+│   │   ├── js/                # Sprite engine, mood tracking, theme manager
+│   │   ├── pages/             # App views (home, widget, settings, history)
+│   │   └── styles/            # CSS styling
+│   ├── main.js                # Electron main process entry point
+│   └── preload/
+│       └── contextBridge.js   # Secure Electron IPC bridge
+├── .gitignore
+├── package.json
+└── README.md
+```
